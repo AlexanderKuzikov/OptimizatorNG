@@ -1,0 +1,21 @@
+{
+  "name": "optimizatorng",
+  "version": "1.0.0",
+  "description": "**Optimizator Next Gen** — это мощное десктопное приложение для глубокой и гибкой оптимизации шаблонов документов. Оно позволяет автоматизировать очистку, форматирование и модификацию файлов `*.docx` и `*.fdt` через настраиваемый конвейер обработки.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlexanderKuzikov/OptimizatorNG.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AlexanderKuzikov/OptimizatorNG/issues"
+  },
+  "homepage": "https://github.com/AlexanderKuzikov/OptimizatorNG#readme"
+}
