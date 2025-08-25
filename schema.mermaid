@@ -1,0 +1,41 @@
+flowchart TD
+    subgraph "Уровень 'Оболочки' (Frontend)"
+        direction LR
+        UI_HTML["index.html <br> (Каркас окна)"]
+        UI_Renderer["renderer.ts <br> (Логика окна)"]
+    end
+
+    subgraph "Уровень 'Оркестратора' (Backend)"
+        direction LR
+        Orchestrator["main.ts <br> (Главный процесс)"]
+        Bridge["preload.ts <br> (Мост)"]
+    end
+
+    subgraph "Уровень 'Ядра' (Logic)"
+        direction LR
+        Processor["processor.ts <br> (Обработчик файлов)"]
+        Atoms["/core/steps/*.ts <br> (Атомы)"]
+        ConfigFile["config.json <br> (Конфигурация)"]
+    end
+
+    %% Поток 1: Загрузка UI
+    UI_HTML -- "Загружает скрипт" --> UI_Renderer
+    
+    UI_Renderer -- "Запрос конфига" --> Bridge
+    Bridge -- "IPC Вызов get-config" --> Orchestrator
+    Orchestrator -- "Читает файл" --> ConfigFile
+    ConfigFile -- "Возвращает данные" --> Orchestrator
+    Orchestrator -- "Отправляет конфиг" --> Bridge
+    Bridge -- "Возвращает Promise" --> UI_Renderer
+    UI_Renderer -- "Строит UI" --> UI_HTML
+
+    %% Поток 2: Обработка файлов
+    UI_Renderer -- "Вызов startProcessing" --> Bridge
+    Bridge -- "IPC Вызов start-processing" --> Orchestrator
+    Orchestrator -- "Вызывает обработчик для каждого файла" --> Processor
+    Processor -- "Использует нужные функции" --> Atoms
+    Processor -- "Читает настройки из" --> ConfigFile
+    Processor -- "Возвращает отчет" --> Orchestrator
+    Orchestrator -- "Отправляет лог в UI update-log" --> Bridge
+    Bridge -- "IPC on update-log" --> UI_Renderer
+    UI_Renderer -- "Обновляет лог" --> UI_HTML
