@@ -2,12 +2,13 @@
   "compilerOptions": {
     "target": "es2021",
     "module": "commonjs",
+    "moduleResolution": "node",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node"
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/main.ts", "src/preload.ts"]
+  "include": ["src/main.ts", "src/preload.ts"],
+  "exclude": ["node_modules"]
 }
