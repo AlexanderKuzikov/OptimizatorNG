@@ -1,0 +1,30 @@
+src
+ ┣ core
+ ┃ ┣ steps
+ ┃ ┃ ┣ applyStyles.test.ts
+ ┃ ┃ ┣ applyStyles.ts
+ ┃ ┃ ┣ removeDuplicateSpaces.test.ts
+ ┃ ┃ ┣ removeDuplicateSpaces.ts
+ ┃ ┃ ┣ removeFonts.test.ts
+ ┃ ┃ ┣ removeFonts.ts
+ ┃ ┃ ┣ removeFontSize.test.ts
+ ┃ ┃ ┣ removeFontSize.ts
+ ┃ ┃ ┣ removeIndentation.test.ts
+ ┃ ┃ ┣ removeIndentation.ts
+ ┃ ┃ ┣ removeParagraphSpacing.test.ts
+ ┃ ┃ ┣ removeParagraphSpacing.ts
+ ┃ ┃ ┣ removeStyles.test.ts
+ ┃ ┃ ┣ removeStyles.ts
+ ┃ ┃ ┣ removeTextColor.test.ts
+ ┃ ┃ ┣ removeTextColor.ts
+ ┃ ┃ ┣ removeTrailingSpaces.test.ts
+ ┃ ┃ ┣ removeTrailingSpaces.ts
+ ┃ ┃ ┣ setPageMargins.test.ts
+ ┃ ┃ ┗ setPageMargins.ts
+ ┃ ┗ processor.ts
+ ┣ templates
+ ┃ ┣ default-sectPr.xml
+ ┃ ┗ default-styles.xml
+ ┣ main.ts
+ ┣ preload.ts
+ ┗ renderer.ts
