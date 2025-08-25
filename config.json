@@ -1,0 +1,102 @@
+{
+  "processingSteps": [
+    {
+      "id": "applyStyles",
+      "name": "Применение эталонных стилей",
+      "description": "Заменяет файл стилей в документе на эталонный шаблон.",
+      "targetFile": "word/styles.xml",
+      "enabled": true,
+      "params": {
+        "templateFileName": "default-styles.xml"
+      }
+    },
+    {
+      "id": "setPageMargins",
+      "name": "Установка полей страницы",
+      "description": "Заменяет или добавляет блок настроек страницы с заданными полями.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {
+        "width": 11907,
+        "height": 16839,
+        "top": 851,
+        "right": 1701,
+        "bottom": 851,
+        "left": 1701,
+        "gutter": 0
+      }
+    },
+    {
+      "id": "removeStyles",
+      "name": "Удаление ссылок на стили",
+      "description": "Полностью очищает документ от всех ссылок на стили в параграфах.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
+    },
+    {
+      "id": "removeParagraphSpacing",
+      "name": "Удаление межпараграфных отступов",
+      "description": "Удаляет все теги <w:spacing>, отвечающие за отступы до и после абзацев.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
+    },
+    {
+      "id": "removeIndentation",
+      "name": "Удаление отступов абзаца",
+      "description": "Удаляет все теги <w:ind>, отвечающие за боковые отступы и отступы первой строки.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
+    },
+    {
+      "id": "removeFonts",
+      "name": "Удаление ручных шрифтов",
+      "description": "Удаляет теги <w:rFonts>, задающие шрифт для фрагмента текста.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
+    },
+    {
+      "id": "removeFontSize",
+      "name": "Удаление ручного размера шрифта",
+      "description": "Удаляет теги <w:sz>, задающие размер шрифта для фрагмента текста.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
+    },
+    {
+      "id": "removeDuplicateSpaces",
+      "name": "Удаление повторяющихся пробелов",
+      "description": "Заменяет несколько пробелов подряд на один.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
+    },
+    {
+      "id": "removeTrailingSpaces",
+      "name": "Удаление пробелов в конце",
+      "description": "Удаляет пробельные символы в конце текстовых блоков.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
+    },
+    {
+      "id": "removeTextColor",
+      "name": "Удаление цвета текста",
+      "description": "Удаляет ручные настройки цвета текста, кроме заданных исключений.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {
+        "preservedColors": [
+          "B3E7FB",
+          "D4E7C8",
+          "ECB3B3",
+          "D4C1E3",
+          "DFE2E6"
+        ]
+      }
+    }
+  ]
+}

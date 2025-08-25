@@ -1,36 +1,17 @@
 import { removeStyles } from './removeStyles';
 
 describe('removeStyles', () => {
-  // Тест 1: Быстрый режим (удалить все)
-  test('should remove all style tags when no preserved IDs are provided', () => {
-    const xml = `
-      <w:pPr><w:pStyle w:val="Style1"/><w:spacing/></w:pPr>
-      <w:rPr><w:rStyle w:val="Style2"/></w:rPr>
-    `;
-    const expected = `
-      <w:pPr><w:spacing/></w:pPr>
-      <w:rPr></w:rPr>
-    `;
-    expect(removeStyles(xml, {})).toBe(expected);
-  });
+    test('should remove style tags and count changes', () => {
+        const xml = `<w:pPr><w:pStyle w:val="1"/><w:pStyle w:val="2"/></w:pPr>`;
+        const result = removeStyles(xml, {});
+        expect(result.xml).toBe('<w:pPr></w:pPr>');
+        expect(result.changes).toBe(2);
+    });
 
-  // Тест 2: "Умный" режим (сохранить указанные)
-  test('should preserve specified style IDs and remove others', () => {
-    const xml = `
-      <w:pPr><w:pStyle w:val="MyPreciousStyle"/></w:pPr>
-      <w:rPr><w:rStyle w:val="UselessStyle"/></w:rPr>
-    `;
-    const expected = `
-      <w:pPr><w:pStyle w:val="MyPreciousStyle"/></w:pPr>
-      <w:rPr></w:rPr>
-    `;
-    const params = { preservedStyleIds: ['MyPreciousStyle'] };
-    expect(removeStyles(xml, params)).toBe(expected);
-  });
-
-  // Тест 3: Чистый XML (ничего не должно сломаться)
-  test('should not change the XML if no style tags are present', () => {
-    const xml = `<w:pPr><w:spacing/></w:rPr>`;
-    expect(removeStyles(xml, {})).toBe(xml);
-  });
+    test('should return 0 changes if no styles are present', () => {
+        const xml = `<w:pPr></w:pPr>`;
+        const result = removeStyles(xml, {});
+        expect(result.xml).toBe(xml);
+        expect(result.changes).toBe(0);
+    });
 });
