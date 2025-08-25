@@ -2,18 +2,111 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Optimizator Next Gen (Viewer)</title>
+    <title>Optimizator Next Gen (Developer)</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #282c34; color: #abb2bf; padding: 1em; }
-        .step-group { margin-bottom: 1.5em; border: 1px solid #3e4451; padding: 1em; border-radius: 8px; }
-        .step-group h2 { margin-top: 0; color: #61afef; border-bottom: 1px solid #3e4451; padding-bottom: 0.5em; }
-        label { display: flex; align-items: center; margin-bottom: 0.75em; cursor: pointer; }
+        /* Сброс базовых стилей и установка box-sizing */
+        html, body { 
+            margin: 0; /* Убираем стандартные отступы браузера */
+            padding: 1em; /* Оставляем внешний отступ */
+            height: 100%; /* Убедимся, что body занимает всю высоту */
+            box-sizing: border-box; /* Важно для корректного расчета размеров */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #282c34; 
+            color: #abb2bf; 
+        }
+        *, *::before, *::after {
+            box-sizing: inherit; /* Наследуем box-sizing для всех элементов */
+        }
+        
+        /* Стили для двухколоночного макета */
+        .main-grid-container {
+            display: flex;
+            gap: 20px; /* Промежуток между колонками */
+            height: calc(100vh - 2em); /* Высота контейнера за вычетом padding body */
+        }
+        .left-panel, .right-panel {
+            flex: 1; /* Занимает 50% доступного пространства */
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Промежуток между элементами внутри колонки */
+            padding: 1em;
+            background-color: #21252b;
+            border-radius: 8px;
+            border: 1px solid #3e4451;
+            min-width: 0; /* ЭТО КЛЮЧЕВОЕ ИЗМЕНЕНИЕ ДЛЯ FLEXBOX! */
+        }
+
+        /* Общие стили для элементов */
+        button { 
+            font-size: 16px; 
+            padding: 12px 20px; 
+            background-color: #61afef; 
+            color: #282c34; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            transition: background-color 0.2s; 
+            width: 100%; 
+        }
+        button:hover { background-color: #98c379; }
+
+        #status-log { 
+            font-family: "Courier New", Courier, monospace; 
+            background-color: #1e1e1e; 
+            border: 1px solid #3e4451; 
+            padding: 1em; 
+            border-radius: 8px; 
+            min-height: 150px; 
+            white-space: pre-wrap; 
+            overflow-y: auto; 
+            flex-grow: 1; 
+            margin-top: auto; 
+            font-size: 0.85em; /* Уменьшаем размер шрифта */
+        }
+        
+        /* Стили для списка шагов */
+        #steps-heading { 
+            font-size: 1.2em; 
+            color: #61afef; 
+            margin-top: 0; 
+            margin-bottom: 15px; 
+            border-bottom: 1px solid #3e4451; 
+            padding-bottom: 0.5em;
+        }
+        .step-group { 
+            margin-bottom: 1em; 
+            border: none; 
+            padding: 0; 
+            border-radius: 0; 
+        }
+        .step-group h2 { 
+            margin-top: 0; 
+            color: #98c379; 
+            border-bottom: 1px solid #3e4451; 
+            padding-bottom: 0.2em;
+            font-size: 1em; 
+            margin-bottom: 0.5em;
+        }
+        label { display: flex; align-items: center; margin-bottom: 0.5em; cursor: pointer; }
         input[type="checkbox"] { margin-right: 10px; }
+        #processing-steps { 
+            flex-grow: 1; 
+            overflow-y: auto; 
+        }
     </style>
   </head>
   <body>
-    <h1>Список шагов обработки</h1>
-    <div id="processing-steps">Загрузка...</div>
+    <div class="main-grid-container">
+        <div class="left-panel">
+            <button id="select-files-button">Выбрать файлы</button>
+            <button id="start-processing-button">Запустить обработку</button>
+            <div id="status-log">Ожидание запуска...</div>
+        </div>
+        <div class="right-panel">
+            <h2 id="steps-heading">Список шагов обработки</h2>
+            <div id="processing-steps">Загрузка...</div>
+        </div>
+    </div>
     <script src="./dist/renderer.js"></script>
   </body>
 </html>

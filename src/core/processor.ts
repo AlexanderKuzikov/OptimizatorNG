@@ -1,5 +1,3 @@
-// src/core/processor.ts
-
 import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
@@ -20,14 +18,14 @@ import { removeTextColor } from './steps/removeTextColor';
 // --- ИНТЕРФЕЙСЫ ---
 interface StepResult { xml: string; changes: number; } // Результат работы атома
 
-// Интерфейс шага обработки (как в config.json)
+// Интерфейс шага обработки (как в config.json), параметры расширены
 interface ProcessingStep {
     id: string;
     name: string;
     description: string;
     targetFile: string;
     enabled: boolean;
-    params: any;
+    params: any; // params теперь может содержать templateContent
 }
 
 // Отчет, который будет возвращать наш процессор
@@ -91,7 +89,8 @@ export async function processDocxFile(
             let currentContent = fileContents[step.targetFile];
             
             // Выполняем обработку
-            const result = processFunction(currentContent, step.params);
+            // Шаг applyStyles теперь получит templateContent из своих params
+            const result = processFunction(currentContent, step.params); 
             
             // Обновляем содержимое в памяти
             fileContents[step.targetFile] = result.xml;

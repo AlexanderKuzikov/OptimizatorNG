@@ -36,15 +36,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const processor_1 = require("./core/processor");
 function readConfig() {
     const basePath = electron_1.app.isPackaged ? electron_1.app.getAppPath() : path.join(__dirname, '..');
     const configPath = path.join(basePath, 'config.json');
-    return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const templatesDir = path.join(basePath, 'src', 'templates');
+    const applyStylesStep = config.processingSteps.find(step => step.id === 'applyStyles');
+    if (applyStylesStep && applyStylesStep.params && applyStylesStep.params.templateFileName) {
+        const templatePath = path.join(templatesDir, applyStylesStep.params.templateFileName);
+        applyStylesStep.params.templateContent = fs.readFileSync(templatePath, 'utf-8');
+    }
+    return config;
 }
+let mainWindow;
+let selectedFilePaths = [];
 function createWindow() {
-    const mainWindow = new electron_1.BrowserWindow({
-        width: 800,
-        height: 700,
+    mainWindow = new electron_1.BrowserWindow({
+        width: 1000, // Установим фиксированную ширину
+        height: 700, // Установим фиксированную высоту
+        resizable: false, // Запретить изменение размера
+        maximizable: false, // Запретить разворачивание на весь экран
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -54,17 +66,107 @@ function createWindow() {
     mainWindow.setMenu(null);
     mainWindow.loadFile('index.html');
 }
-electron_1.app.whenReady().then(() => {
-    electron_1.ipcMain.handle('get-config', () => {
-        return readConfig();
+// НОВАЯ ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ОЖИДАНИЯ
+function askToRetry(window, fileName) {
+    return new Promise(resolve => {
+        window.webContents.send('update-status', `\n  ОШИБКА: Файл ${fileName} заблокирован. Пожалуйста, закройте его и нажмите ENTER в консоли.`);
+        // Note: process.stdin is only available in main process, not renderer.
+        // For production Electron apps, a dialog box would be used here.
+        process.stdin.setRawMode(true);
+        process.stdin.resume();
+        process.stdin.once('data', key => {
+            if (key.toString() === '\u0003') { // Ctrl+C
+                process.exit();
+            }
+            process.stdin.setRawMode(false);
+            process.stdin.pause();
+            resolve();
+        });
     });
-    createWindow();
-    electron_1.app.on('activate', () => {
-        if (electron_1.BrowserWindow.getAllWindows().length === 0)
-            createWindow();
-    });
+}
+// === IPC ОБРАБОТЧИКИ ===
+electron_1.ipcMain.handle('get-config', () => {
+    return readConfig();
 });
+electron_1.ipcMain.handle('select-files', async () => {
+    if (!mainWindow)
+        return;
+    const { filePaths } = await electron_1.dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile', 'multiSelections'],
+        filters: [{ name: 'Word Documents', extensions: ['docx'] }]
+    });
+    if (filePaths && filePaths.length > 0) {
+        selectedFilePaths = filePaths;
+        mainWindow.webContents.send('update-status', `Выбрано файлов: ${filePaths.length}`);
+        filePaths.forEach(p => mainWindow.webContents.send('update-status', `  - ${path.basename(p)}`));
+    }
+    else {
+        selectedFilePaths = [];
+        mainWindow.webContents.send('update-status', 'Выбор файлов отменен.');
+    }
+});
+electron_1.ipcMain.handle('start-processing', async (event, enabledStepIds) => {
+    if (selectedFilePaths.length === 0) {
+        mainWindow?.webContents.send('update-status', 'Файлы не выбраны. Сначала выберите файлы.');
+        return;
+    }
+    const config = readConfig();
+    const stepsToRun = config.processingSteps.filter(step => enabledStepIds.includes(step.id));
+    const outDir = path.join(path.dirname(selectedFilePaths[0]), 'OUT');
+    if (!fs.existsSync(outDir)) {
+        fs.mkdirSync(outDir);
+    }
+    mainWindow?.webContents.send('update-status', '\nНачинаю обработку файлов...');
+    for (let i = 0; i < selectedFilePaths.length; i++) {
+        const filePath = selectedFilePaths[i];
+        const fileName = path.basename(filePath);
+        let report;
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
+        do {
+            try {
+                report = await (0, processor_1.processDocxFile)(filePath, stepsToRun, outDir);
+                report.logMessages.forEach(msg => mainWindow?.webContents.send('update-status', msg));
+                if (!report.success && report.error && report.error.includes('EBUSY')) {
+                    if (retryCount < MAX_RETRIES) {
+                        retryCount++;
+                        await askToRetry(mainWindow, report.fileName);
+                    }
+                    else {
+                        mainWindow?.webContents.send('update-status', `\n  ОШИБКА: Превышено количество попыток для файла ${report.fileName}. Пропускаю.`);
+                        report.success = false;
+                        break;
+                    }
+                }
+                else if (!report.success) {
+                    break;
+                }
+                else {
+                    break;
+                }
+            }
+            catch (procError) {
+                const msg = procError instanceof Error ? procError.message : String(procError);
+                mainWindow?.webContents.send('update-status', `\n  КРИТИЧЕСКАЯ ОШИБКА при запуске процессора для ${fileName}: ${msg}`);
+                report = { fileName: fileName, success: false, logMessages: [], error: msg };
+                break;
+            }
+        } while (!report.success);
+        if (!report.success) {
+            mainWindow?.webContents.send('update-status', `  Обработка файла ${fileName} завершена с ошибками.`);
+        }
+    }
+    mainWindow?.webContents.send('update-status', '\nВСЯ ОБРАБОТКА ЗАВЕРШЕНА.');
+});
+// === ЖИЗНЕННЫЙ ЦИКЛ ПРИЛОЖЕНИЯ ===
+electron_1.app.whenReady().then(createWindow);
 electron_1.app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin')
+    if (process.platform !== 'darwin') {
         electron_1.app.quit();
+    }
+});
+electron_1.app.on('activate', () => {
+    if (electron_1.BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+    }
 });
