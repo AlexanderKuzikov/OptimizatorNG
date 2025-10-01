@@ -53,3 +53,59 @@
 4.  После выбора файлов "Оркестратор" последовательно применит все включенные "атомы" к каждому документу.
 5.  Лог обработки и количество произведенных замен будут выводиться в реальном времени в текстовое поле внизу окна.
 6.  Обработанные файлы будут сохранены в папке `OUT/` в той же директории, где находятся исходные файлы.
+
+```
+OptimizatorNG
+├─ .markdownlint.json
+├─ config.json
+├─ docs
+│  ├─ DEV_LOG.md
+│  ├─ Glossary.md
+│  ├─ Initial Project Prompt.md
+│  ├─ modules-breakdown.mmd
+│  ├─ project-status.mmd
+│  ├─ PROJECT.md
+│  ├─ PROMPT.md
+│  ├─ schema.mermaid
+│  └─ tree.txt
+├─ index.html
+├─ jest.config.js
+├─ LICENSE
+├─ package-lock.json
+├─ package.json
+├─ README.md
+├─ src
+│  ├─ core
+│  │  ├─ processor.ts
+│  │  └─ steps
+│  │     ├─ applyStyles.test.ts
+│  │     ├─ applyStyles.ts
+│  │     ├─ removeDuplicateSpaces.test.ts
+│  │     ├─ removeDuplicateSpaces.ts
+│  │     ├─ removeFonts.test.ts
+│  │     ├─ removeFonts.ts
+│  │     ├─ removeFontSize.test.ts
+│  │     ├─ removeFontSize.ts
+│  │     ├─ removeIndentation.test.ts
+│  │     ├─ removeIndentation.ts
+│  │     ├─ removeParagraphSpacing.test.ts
+│  │     ├─ removeParagraphSpacing.ts
+│  │     ├─ removeStyles.test.ts
+│  │     ├─ removeStyles.ts
+│  │     ├─ removeTextColor.test.ts
+│  │     ├─ removeTextColor.ts
+│  │     ├─ removeTrailingSpaces.test.ts
+│  │     ├─ removeTrailingSpaces.ts
+│  │     ├─ setPageMargins.test.ts
+│  │     └─ setPageMargins.ts
+│  ├─ main.ts
+│  ├─ preload.ts
+│  ├─ renderer.ts
+│  └─ templates
+│     ├─ default-sectPr.xml
+│     └─ default-styles.xml
+├─ tsconfig.json
+├─ tsconfig.main.json
+└─ tsconfig.renderer.json
+
+```
