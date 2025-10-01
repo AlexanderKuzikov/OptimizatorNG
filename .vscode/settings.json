@@ -11,7 +11,11 @@
   "markdown.validate.enabled": false,
   "[markdown]": {
     "editor.wordWrap": "on",
-    "editor.quickSuggestions": false
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    }
   },
   "[mermaid]": {
     "editor.wordWrap": "on"
