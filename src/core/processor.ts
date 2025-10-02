@@ -13,10 +13,12 @@ import { removeFontSize } from './steps/removeFontSize';
 import { removeDuplicateSpaces } from './steps/removeDuplicateSpaces';
 import { removeTrailingSpaces } from './steps/removeTrailingSpaces';
 import { removeTextColor } from './steps/removeTextColor';
-// import { replaceSpaceWithNbspAfterNumbering } from './steps/replaceSpaceWithNbspAfterNumbering'; // Пока закомментировано
+import { cleanupDocumentStructure } from './steps/cleanupDocumentStructure';
+import { replaceSpaceWithNbspAfterNumbering } from './steps/replaceSpaceWithNbspAfterNumbering';
 
 // --- ИНТЕРФЕЙСЫ ---
-interface StepResult { xml: string; changes: number; } // Результат работы атома
+
+interface StepResult { xml: string; changes: number; }
 
 // Интерфейс шага обработки (как в config.json), параметры расширены
 interface ProcessingStep {
@@ -25,7 +27,7 @@ interface ProcessingStep {
     description: string;
     targetFile: string;
     enabled: boolean;
-    params: any; // params теперь может содержать templateContent
+    params: any;
 }
 
 // Отчет, который будет возвращать наш процессор
@@ -48,10 +50,12 @@ const functionMap: { [key: string]: (xml: string, params: any) => StepResult } =
     removeDuplicateSpaces,
     removeTrailingSpaces,
     removeTextColor,
-    // replaceSpaceWithNbspAfterNumbering // Пока закомментировано
+    cleanupDocumentStructure,
+    replaceSpaceWithNbspAfterNumbering
 };
 
 // === ГЛАВНАЯ ФУНКЦИЯ ПРОЦЕССОРА ===
+
 export async function processDocxFile(
     filePath: string,                  // Полный путь к исходному файлу
     enabledSteps: ProcessingStep[],    // Включенные шаги из config.json
@@ -67,52 +71,57 @@ export async function processDocxFile(
 
     try {
         const zip = new AdmZip(filePath);
-        
+
         // Загружаем все уникальные целевые файлы из DOCX в память
         const fileContents: { [key: string]: string } = {};
         const uniqueTargetFiles = [...new Set(enabledSteps.map(step => step.targetFile))];
-        
+
         for (const targetFile of uniqueTargetFiles) {
             const entry = zip.getEntry(targetFile);
             fileContents[targetFile] = entry ? entry.getData().toString('utf-8') : '';
         }
 
         // --- Запускаем конвейер обработки по шагам ---
+
         for (const step of enabledSteps) {
             const processFunction = functionMap[step.id];
+
             if (!processFunction) {
                 report.logMessages.push(`  Предупреждение: Функция для шага "${step.id}" не найдена.`);
                 continue;
             }
-            
+
             // Получаем текущее содержимое файла (или пустую строку, если его нет)
             let currentContent = fileContents[step.targetFile];
-            
+
             // Выполняем обработку
-            // Шаг applyStyles теперь получит templateContent из своих params
             const result = processFunction(currentContent, step.params); 
-            
+
             // Обновляем содержимое в памяти
             fileContents[step.targetFile] = result.xml;
-            
+
             // Формируем отчет для этого шага
             let stepReportMessage = `Шаг "${step.name}": `;
+
             if (['applyStyles', 'setPageMargins'].includes(step.id)) {
                 stepReportMessage += result.changes > 0 ? `Выполнен.` : `Пропущен (изменений не требовалось).`;
             } else {
                 stepReportMessage += result.changes > 0 ? `Произведено замен: ${result.changes}.` : `Изменений не найдено.`;
             }
+
             report.logMessages.push(stepReportMessage);
         }
 
         // --- Сохраняем измененные файлы обратно в ZIP ---
+
         for (const targetFile in fileContents) {
             zip.updateFile(targetFile, Buffer.from(fileContents[targetFile], 'utf-8'));
         }
-        
+
         // Сохраняем финальный ZIP-файл на диск
         const outPath = path.join(outDirectory, fileName);
         zip.writeZip(outPath);
+
         report.logMessages.push(`  Успешно сохранено в: ${outPath}`);
         report.success = true;
 

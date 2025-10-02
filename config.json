@@ -69,7 +69,7 @@
     {
       "id": "removeDuplicateSpaces",
       "name": "Удаление повторяющихся пробелов",
-      "description": "Заменяет несколько пробелов подряд на один.",
+      "description": "Заменяет несколько пробелов подряд на один и удаляет связанный атрибут xml:space.",
       "targetFile": "word/document.xml",
       "enabled": true,
       "params": {}
@@ -97,6 +97,22 @@
           "DFE2E6"
         ]
       }
+    },
+    {
+      "id": "cleanupDocumentStructure",
+      "name": "Структурная оптимизация XML",
+      "description": "Удаляет невидимые метаданные Word (RSID, маркеры орфографии) для упрощения структуры.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
+    },
+    {
+      "id": "replaceSpaceWithNbspAfterNumbering",
+      "name": "Замена пробела на неразрывный после нумерации",
+      "description": "Заменяет обычный пробел на неразрывный после ручной нумерации списков (1. , 1.2. , 1.2.3. ).",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
     }
   ]
 }

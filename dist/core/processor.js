@@ -50,6 +50,8 @@ const removeFontSize_1 = require("./steps/removeFontSize");
 const removeDuplicateSpaces_1 = require("./steps/removeDuplicateSpaces");
 const removeTrailingSpaces_1 = require("./steps/removeTrailingSpaces");
 const removeTextColor_1 = require("./steps/removeTextColor");
+const cleanupDocumentStructure_1 = require("./steps/cleanupDocumentStructure");
+const replaceSpaceWithNbspAfterNumbering_1 = require("./steps/replaceSpaceWithNbspAfterNumbering");
 // Карта функций для вызова атомов по ID
 const functionMap = {
     applyStyles: applyStyles_1.applyStyles,
@@ -62,7 +64,8 @@ const functionMap = {
     removeDuplicateSpaces: removeDuplicateSpaces_1.removeDuplicateSpaces,
     removeTrailingSpaces: removeTrailingSpaces_1.removeTrailingSpaces,
     removeTextColor: removeTextColor_1.removeTextColor,
-    // replaceSpaceWithNbspAfterNumbering // Пока закомментировано
+    cleanupDocumentStructure: cleanupDocumentStructure_1.cleanupDocumentStructure,
+    replaceSpaceWithNbspAfterNumbering: replaceSpaceWithNbspAfterNumbering_1.replaceSpaceWithNbspAfterNumbering
 };
 // === ГЛАВНАЯ ФУНКЦИЯ ПРОЦЕССОРА ===
 async function processDocxFile(filePath, // Полный путь к исходному файлу
@@ -94,7 +97,6 @@ outDirectory // Директория для сохранения результ�
             // Получаем текущее содержимое файла (или пустую строку, если его нет)
             let currentContent = fileContents[step.targetFile];
             // Выполняем обработку
-            // Шаг applyStyles теперь получит templateContent из своих params
             const result = processFunction(currentContent, step.params);
             // Обновляем содержимое в памяти
             fileContents[step.targetFile] = result.xml;
