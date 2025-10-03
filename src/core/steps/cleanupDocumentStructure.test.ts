@@ -2,69 +2,48 @@
 
 import { cleanupDocumentStructure } from './cleanupDocumentStructure';
 
-describe('cleanupDocumentStructure', () => {
+describe('cleanupDocumentStructure (Cleanup-Only Logic)', () => {
 
-    // --- Тесты для Этапа 1: Основное слияние с канонизацией ---
-
-    it('[Этап 1] должен объединять run-ы с одинаковыми, но неотсортированными свойствами', () => {
-        const input = '<w:r><w:rPr><w:b/><w:i/></w:rPr><w:t>A</w:t></w:r><w:r><w:rPr><w:i/><w:b/></w:rPr><w:t>B</w:t></w:r>';
-        const expected = '<w:r><w:rPr><w:b/><w:i/></w:rPr><w:t>AB</w:t></w:r>';
+    it('должен удалять XML-комментарии', () => {
+        const input = '<w:p><!-- Это комментарий --><w:r><w:t>Текст</w:t></w:r></w:p>';
+        const expected = '<w:p><w:r><w:t>Текст</w:t></w:r></w:p>';
         const result = cleanupDocumentStructure(input, {});
-        // Для предсказуемого теста приводим результат к одному виду
-        const normalizedResult = result.xml.replace('<w:rPr><w:i/><w:b/></w:rPr>', '<w:rPr><w:b/><w:i/></w:rPr>');
-        expect(normalizedResult).toBe(expected);
+        expect(result.xml).toBe(expected);
     });
-    
-    it('[Этап 1] НЕ должен объединять run с разными свойствами', () => {
-        const input = '<w:r><w:rPr><w:b/></w:rPr><w:t>Bold</w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>Italic</w:t></w:r>';
+
+    it('должен удалять служебные теги <w:proofErr> и <w:lang>', () => {
+        const input = '<w:r><w:rPr><w:lang w:val="en-US"/></w:rPr><w:proofErr w:type="spellStart"/><w:t>text</w:t><w:proofErr w:type="spellEnd"/></w:r>';
+        const expected = '<w:r><w:rPr></w:rPr><w:t>text</w:t></w:r>';
+        const result = cleanupDocumentStructure(input, {});
+        // Финальный результат будет без <w:rPr>, т.к. оно тоже удаляется следующим правилом
+        const finalExpected = '<w:r><w:t>text</w:t></w:r>';
+        expect(result.xml).toBe(finalExpected);
+    });
+
+    it('должен удалять пустые блоки <w:rPr></w:rPr>', () => {
+        const input = '<w:r><w:rPr></w:rPr><w:t>Текст</w:t></w:r>';
+        const expected = '<w:r><w:t>Текст</w:t></w:r>';
+        const result = cleanupDocumentStructure(input, {});
+        expect(result.xml).toBe(expected);
+    });
+
+    it('должен удалять пустые "сложные" run-ы (Шаг 10)', () => {
+        const input = '<w:p><w:r><w:t>Начало</w:t></w:r><w:r><w:rPr/><w:t></w:t></w:r><w:r><w:t>Конец</w:t></w:r></w:p>';
+        const expected = '<w:p><w:r><w:t>Начало</w:t></w:r><w:r><w:t>Конец</w:t></w:r></w:p>';
+        const result = cleanupDocumentStructure(input, {});
+        expect(result.xml).toBe(expected);
+    });
+
+    it('НЕ должен удалять пустые "простые" run-ы (Правило 15 удалено)', () => {
+        const input = '<w:p><w:r><w:t></w:t></w:r></w:p>';
         const result = cleanupDocumentStructure(input, {});
         expect(result.xml).toBe(input);
     });
-
-    // --- Тесты для Этапа 2: Очистка ---
-
-    it('[Этап 2] должен удалять теги <w:jc>, <w:proofErr>, <w:lang> и пустые <w:rPr>', () => {
-        const input = '<w:p><w:pPr><w:jc w:val="both"/></w:pPr><w:r><w:rPr><w:lang w:val="en-US"/></w:rPr><w:proofErr w:type="spellStart"/><w:t>text</w:t><w:proofErr w:type="spellEnd"/></w:r></w:p>';
-        const expected = '<w:p><w:pPr></w:pPr><w:r><w:t>text</w:t></w:r></w:p>';
-        const result = cleanupDocumentStructure(input, {});
-        expect(result.xml).toBe(expected);
-    });
-
-    // --- Тесты для Этапа 3: Итеративное слияние простейшего случая ---
-
-    it('[Этап 3] должен слить два соседних run БЕЗ СВОЙСТВ', () => {
+    
+    it('НЕ должен выполнять слияние тегов <w:r>', () => {
         const input = '<w:r><w:t>Текст1</w:t></w:r><w:r><w:t>Текст2</w:t></w:r>';
-        const expected = '<w:r><w:t>Текст1Текст2</w:t></w:r>';
         const result = cleanupDocumentStructure(input, {});
-        expect(result.xml).toBe(expected);
-    });
-
-    it('[Этап 3] должен итеративно слить пять соседних run-ов без свойств', () => {
-        const input = '<w:r><w:t>A</w:t></w:r><w:r><w:t>B</w:t></w:r><w:r><w:t>C</w:t></w:r><w:r><w:t>D</w:t></w:r><w:r><w:t>E</w:t></w:r>';
-        const expected = '<w:r><w:t>ABCDE</w:t></w:r>';
-        const result = cleanupDocumentStructure(input, {});
-        expect(result.xml).toBe(expected);
-    });
-
-    it('[Этап 3] НЕ должен трогать run-ы, если один из них содержит <w:rPr>', () => {
-        const input = '<w:r><w:t>Текст1</w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>Текст2</w:t></w:r>';
-        const result = cleanupDocumentStructure(input, {});
-        // Этап 1 их не тронет. Этап 3 - тоже не должен.
-        expect(result.xml).toBe(input); 
-    });
-    
-    // --- Интеграционный тест ---
-    
-    it('[Интеграция] должен сначала слить сложное, а потом простое', () => {
-        const input = `
-            <w:p>
-                <w:r><w:rPr><w:b/></w:rPr><w:t>Bold</w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t> and </w:t></w:r>
-                <w:r><w:t>simple</w:t></w:r><w:r><w:t> text.</w:t></w:r>
-            </w:p>
-        `;
-        const expected = '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Bold and </w:t></w:r><w:r><w:t>simple text.</w:t></w:r></w:p>';
-        const result = cleanupDocumentStructure(input, {});
-        expect(result.xml.replace(/\s/g, '')).toBe(expected.replace(/\s/g, ''));
+        expect(result.xml).toBe(input); // Ожидаем, что ничего не изменится
     });
 
 });

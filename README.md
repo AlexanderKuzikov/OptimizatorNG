@@ -7,19 +7,29 @@
 Проект построен на нескольких ключевых архитектурных принципах:
 
 1.  **Единый источник истины (`config.json`)**: Вся логика обработки, настройки и даже метаданные для UI определяются в одном конфигурационном файле. Это позволяет изменять поведение приложения без перекомпиляции кода.
+
 2.  **Максимальная атомизация**: Каждая операция (например, "удалить отступы" или "заменить цвет") является независимой, "атомарной" функцией со своим собственным тестом. Это обеспечивает надежность и гибкость конвейера.
+
 3.  **Динамический UI**: Пользовательский интерфейс не захардкожен, а динамически генерируется на основе содержимого `config.json`, что упрощает добавление нового функционала.
+
 4.  **Трехуровневая архитектура**:
-    - **Оболочка (Shell)**: Графический интерфейс на базе Electron (`index.html`, `renderer.ts`, `preload.ts`), отвечающий за взаимодействие с пользователем.
-    - **Оркестратор (Orchestrator)**: Главный процесс Electron (`main.ts`), который управляет окном, читает `config.json` и запускает конвейер обработки в ответ на действия пользователя.
+
+    - **Оболочка (Shell)**: Графический интерфейс на базе Electron (`main.ts`, `renderer.ts`, `preload.ts`), отвечающий за взаимодействие с пользователем, работу с файловой системой и вызов Оркестратора.
+
+    - **Оркестратор (Orchestrator)**: `processor.ts`, находящийся внутри Ядра. Читает `config.json` и управляет последовательным вызовом атомарных функций.
+
     - **Ядро (Core)**: Набор чистых, атомарных TypeScript-функций (`src/core/steps/*.ts`), которые выполняют всю работу по модификации XML-содержимого документов.
 
 ## Стек технологий
 
 - **Фреймворк:** Electron
+
 - **Язык:** TypeScript
+
 - **Тестирование:** Jest
+
 - **Среда выполнения:** Node.js
+
 - **Система контроля версий:** Git (GitHub)
 
 ## Установка и запуск
@@ -38,74 +48,82 @@
     ```
 
 3.  **Запустите приложение:**
+
     ```bash
     npm start
     ```
+
     Эта команда автоматически скомпилирует TypeScript-код в папку `dist/` и запустит Electron-приложение.
 
 ## Как это работает
 
-При запуске приложение читает `config.json` и строит интерфейс, группируя все доступные шаги обработки по целевым файлам (`word/document.xml`, `word/styles.xml` и т.д.).
+При запуске приложение читает `config.json` и строит интерфейс, отображая все доступные шаги обработки.
 
 1.  Вы можете включать или отключать любой шаг с помощью чекбоксов.
+
 2.  Нажмите кнопку **"Выбрать файлы и запустить обработку"**.
+
 3.  Откроется системный диалог для выбора одного или нескольких `*.docx` файлов.
+
 4.  После выбора файлов "Оркестратор" последовательно применит все включенные "атомы" к каждому документу.
+
 5.  Лог обработки и количество произведенных замен будут выводиться в реальном времени в текстовое поле внизу окна.
+
 6.  Обработанные файлы будут сохранены в папке `OUT/` в той же директории, где находятся исходные файлы.
 
-```
-OptimizatorNG
-├─ .markdownlint.json
-├─ config.json
-├─ docs
-│  ├─ DEV_LOG.md
-│  ├─ Glossary.md
-│  ├─ Initial Project Prompt.md
-│  ├─ modules-breakdown.mmd
-│  ├─ project-status.mmd
-│  ├─ PROJECT.md
-│  ├─ PROMPT.md
-│  ├─ schema.mermaid
-│  └─ tree.txt
-├─ index.html
-├─ jest.config.js
-├─ LICENSE
-├─ package-lock.json
-├─ package.json
-├─ README.md
-├─ src
-│  ├─ core
-│  │  ├─ processor.ts
-│  │  └─ steps
-│  │     ├─ applyStyles.test.ts
-│  │     ├─ applyStyles.ts
-│  │     ├─ removeDuplicateSpaces.test.ts
-│  │     ├─ removeDuplicateSpaces.ts
-│  │     ├─ removeFonts.test.ts
-│  │     ├─ removeFonts.ts
-│  │     ├─ removeFontSize.test.ts
-│  │     ├─ removeFontSize.ts
-│  │     ├─ removeIndentation.test.ts
-│  │     ├─ removeIndentation.ts
-│  │     ├─ removeParagraphSpacing.test.ts
-│  │     ├─ removeParagraphSpacing.ts
-│  │     ├─ removeStyles.test.ts
-│  │     ├─ removeStyles.ts
-│  │     ├─ removeTextColor.test.ts
-│  │     ├─ removeTextColor.ts
-│  │     ├─ removeTrailingSpaces.test.ts
-│  │     ├─ removeTrailingSpaces.ts
-│  │     ├─ setPageMargins.test.ts
-│  │     └─ setPageMargins.ts
-│  ├─ main.ts
-│  ├─ preload.ts
-│  ├─ renderer.ts
-│  └─ templates
-│     ├─ default-sectPr.xml
-│     └─ default-styles.xml
-├─ tsconfig.json
-├─ tsconfig.main.json
-└─ tsconfig.renderer.json
+## Структура проекта
 
-```
+    OptimizatorNG/
+    ├─ .markdownlint.json           # Настройки линтера Markdown (отключены строгие правила)
+    ├─ config.json                  # Конфигурация шагов обработки (единый источник истины)
+    ├─ docs/                        # Документация проекта
+    │  ├─ DEV_LOG.md                # История архитектурных решений и проблем
+    │  ├─ Glossary.md               # Глоссарий терминов проекта
+    │  ├─ Initial Project Prompt.md # Исходное техническое задание
+    │  ├─ modules-breakdown.mmd     # Kanban-диаграмма: декомпозиция по модулям
+    │  ├─ project-status.mmd        # Kanban-диаграмма: общий статус проекта
+    │  ├─ PROJECT.md                # Описание структуры проекта (этот файл)
+    │  ├─ PROMPT.md                 # Универсальный промпт для AI-ассистентов
+    │  ├─ schema.mermaid            # Схема архитектуры системы
+    │  └─ tree.txt                  # Сырое дерево файлов (генерируется автоматически)
+    ├─ index.html                   # Главная страница приложения (UI разметка)
+    ├─ jest.config.js               # Конфигурация Jest для тестирования
+    ├─ LICENSE                      # Лицензия проекта
+    ├─ package-lock.json            # Зафиксированные версии зависимостей
+    ├─ package.json                 # NPM метаданные, зависимости и скрипты
+    ├─ README.md                    # Главный README проекта (для GitHub)
+    ├─ src/                         # Исходный код приложения
+    │  ├─ core/                     # Ядро обработки DOCX
+    │  │  ├─ processor.ts           # Оркестратор: управление конвейером обработки
+    │  │  └─ steps/                 # Атомарные функции обработки
+    │  │     ├─ applyStyles.test.ts        # Unit-тест для applyStyles
+    │  │     ├─ applyStyles.ts             # Замена файла styles.xml на эталонный
+    │  │     ├─ cleanupDocumentStructure.test.ts     # Unit-тест для cleanupGarbage
+    │  │     ├─ cleanupDocumentStructure.ts# Удаление "мусорных" тегов
+    │  │     ├─ removeDuplicateSpaces.test.ts
+    │  │     ├─ removeDuplicateSpaces.ts   # Удаление двойных пробелов (RegExp)
+    │  │     ├─ removeFonts.test.ts
+    │  │     ├─ removeFonts.ts             # Удаление блоков <w:fonts>
+    │  │     ├─ removeFontSize.test.ts
+    │  │     ├─ removeFontSize.ts          # Удаление атрибутов размера шрифта
+    │  │     ├─ removeIndentation.test.ts
+    │  │     ├─ removeIndentation.ts       # Удаление отступов <w:ind>
+    │  │     ├─ removeParagraphSpacing.test.ts
+    │  │     ├─ removeParagraphSpacing.ts  # Удаление межабзацных интервалов <w:spacing>
+    │  │     ├─ removeStyles.test.ts
+    │  │     ├─ removeStyles.ts            # Удаление ссылок на стили <w:pStyle>, <w:rStyle>
+    │  │     ├─ removeTextColor.test.ts
+    │  │     ├─ removeTextColor.ts         # Удаление цвета текста <w:color>
+    │  │     ├─ removeTrailingSpaces.test.ts
+    │  │     ├─ removeTrailingSpaces.ts    # Удаление пробелов в конце строк
+    │  │     ├─ setPageMargins.test.ts
+    │  │     └─ setPageMargins.ts          # Установка полей страницы (замена <w:sectPr>)
+    │  ├─ main.ts                  # Main процесс Electron (IPC handlers, window management)
+    │  ├─ preload.ts               # Preload скрипт (безопасный IPC bridge)
+    │  ├─ renderer.ts              # Renderer процесс (UI логика, обработка событий)
+    │  └─ templates/               # XML шаблоны для форматирования
+    │     ├─ default-sectPr.xml    # Настройки разделов документа (поля, ориентация)
+    │     └─ default-styles.xml    # Эталонный файл стилей Word
+    ├─ tsconfig.json                # TypeScript: общая базовая конфигурация
+    ├─ tsconfig.main.json           # TypeScript: конфигурация для main процесса
+    └─ tsconfig.renderer.json       # TypeScript: конфигурация для renderer процесса
