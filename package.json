@@ -4,9 +4,10 @@
   "description": "Десктопное приложение для оптимизации шаблонов документов.",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json && esbuild src/renderer.ts --bundle --outfile=dist/renderer.js --platform=browser",
+    "build": "esbuild src/main.ts --bundle --platform=node --outfile=dist/main.js --external:electron && esbuild src/renderer.ts --bundle --platform=browser --outfile=dist/renderer.js",
     "start": "npm run build && electron .",
-    "test": "jest"
+    "test": "jest",
+    "dist": "npm run build && electron-builder"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +27,25 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
-    "xmldom": "^0.6.0"
+    "@xmldom/xmldom": "^0.8.10"
+  },
+  "build": {
+    "appId": "com.kombinator.optimizatorng",
+    "productName": "Optimizator Next Gen",
+    "files": [
+      "dist/**/*",
+      "index.html",
+      "src/templates/*.xml"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
