@@ -13,7 +13,7 @@
     {
       "id": "setPageMargins",
       "name": "Установка полей страницы",
-      "description": "Заменяет или добавляет блок настроек страницы с заданными полями.",
+      "description": "Удаляет все старые и добавляет один новый блок настроек страницы.",
       "targetFile": "word/document.xml",
       "enabled": true,
       "params": {
@@ -60,8 +60,8 @@
     },
     {
       "id": "removeFontSize",
-      "name": "Удаление ручного размера шрифта",
-      "description": "Удаляет теги <w:sz>, задающие размер шрифта для фрагмента текста.",
+      "name": "Удаление базового форматирования",
+      "description": "Удаляет размер шрифта, курсив и подчеркивание.",
       "targetFile": "word/document.xml",
       "enabled": true,
       "params": {}
@@ -84,8 +84,8 @@
     },
     {
       "id": "removeTextColor",
-      "name": "Удаление цвета текста",
-      "description": "Удаляет ручные настройки цвета текста, кроме заданных исключений.",
+      "name": "Удаление цвета текста и фона",
+      "description": "Удаляет ручные настройки цвета текста и фона, кроме заданных исключений.",
       "targetFile": "word/document.xml",
       "enabled": true,
       "params": {
@@ -126,6 +126,14 @@
       "id": "mergeInstructionTextRuns",
       "name": "Объединение блоков инструкций (w:instrText)",
       "description": "Склеивает соседние блоки текста инструкций (<w:instrText>) для очистки полей.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
+    },
+    {
+      "id": "cleanupParaProps",
+      "name": "Очистка свойств параграфа",
+      "description": "Удаляет некорректные и избыточные свойства параграфов.",
       "targetFile": "word/document.xml",
       "enabled": true,
       "params": {}

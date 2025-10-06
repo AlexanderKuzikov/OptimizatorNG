@@ -1,38 +1,61 @@
-/**
- * Заменяет обычный пробел на неразрывный после ручной нумерации списков
- *
- * Функция находит паттерны вида "1. ", "1.2. ", "10.20.30. " в начале абзацев
- * (внутри первого тега <w:t>) и заменяет пробел после точки на неразрывный (&nbsp;).
- * Это предотвращает перенос номера списка отдельно от текста.
- *
- * Поддерживается до 3 уровней вложенности (например: 1.2.3. ).
- * Многозначные числа поддерживаются (10, 123 и т.д.).
- *
- * @param xmlString - XML-содержимое файла word/document.xml
- * @param params - Параметры обработки (не используются в данной функции)
- * @returns Объект с обработанным XML и количеством произведённых замен
- *
- * @example
- * const result = replaceSpaceWithNbspAfterNumbering('<w:t>1.2. Текст</w:t>', {});
- * // result: { xml: '<w:t>1.2.\u00A0Текст</w:t>', changes: 1 }
- */
+import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+import is from '@sindresorhus/is';
 
 interface StepResult {
   xml: string;
   changes: number;
 }
 
-export function replaceSpaceWithNbspAfterNumbering(xmlString: string, params: any): StepResult {
-  // WHY: Ищем только в начале текстового узла (<w:t>), чтобы не затронуть
-  // нумерацию внутри предложений (например, "см. пункт 1.2. в документе")
-  // Паттерн: <w:t> + число (одно или несколько цифр) + до 2 повторений ".число" + точка + пробел
-  const numberingRegex = /<w:t>(\d+(?:\.\d+){0,2}\.) /g;
+export function replaceSpaceWithNbspAfterNumbering(xml: string, params: any): StepResult {
+  if (is.emptyStringOrWhitespace(xml)) {
+    return { xml: '', changes: 0 };
+  }
 
-  const matches = xmlString.match(numberingRegex);
-  const changes = matches ? matches.length : 0;
+  let totalChanges = 0;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<dummy>${xml}</dummy>`, 'application/xml');
 
-  // Заменяем обычный пробел на неразрывный Unicode-символ \u00A0
-  const xml = xmlString.replace(numberingRegex, '<w:t>$1\u00A0');
+  const textNodes = Array.from(doc.getElementsByTagName('w:t'));
 
-  return { xml, changes };
+  for (const t of textNodes) {
+    let text = t.textContent || '';
+    let nodeChanged = false;
+
+    // --- ЭТАП 1: Замена пробела на неразрывный после нумерации ---
+    const numberingRegex = /^((\d+\.){1,3}) /;
+    if (numberingRegex.test(text)) {
+      // ИСПРАВЛЕНИЕ: Используем Unicode-символ \u00A0 вместо сущности &nbsp;
+      text = text.replace(numberingRegex, '$1\u00A0');
+      nodeChanged = true;
+      totalChanges++;
+    }
+
+    // --- ЭТАП 2: Установка xml:space="preserve" ---
+    if (text.startsWith(' ') || text.endsWith(' ')) {
+      if (t.getAttribute('xml:space') !== 'preserve') {
+        t.setAttribute('xml:space', 'preserve');
+        if (!nodeChanged) {
+          totalChanges++;
+        }
+        nodeChanged = true;
+      }
+    }
+
+    if (nodeChanged) {
+      while (t.firstChild) {
+        t.removeChild(t.firstChild);
+      }
+      // Теперь сюда будет вставлен правильный Unicode-символ
+      t.appendChild(doc.createTextNode(text));
+    }
+  }
+
+  if (totalChanges > 0) {
+    const serializer = new XMLSerializer();
+    const fullXml = serializer.serializeToString(doc);
+    const finalXml = fullXml.substring('<dummy>'.length, fullXml.length - '</dummy>'.length);
+    return { xml: finalXml, changes: totalChanges };
+  }
+
+  return { xml, changes: 0 };
 }

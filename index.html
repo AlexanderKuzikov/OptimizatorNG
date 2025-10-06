@@ -17,7 +17,6 @@
         *, *::before, *::after {
             box-sizing: inherit; /* Наследуем box-sizing для всех элементов */
         }
-        
         /* Стили для двухколоночного макета */
         .main-grid-container {
             display: flex;
@@ -35,7 +34,6 @@
             border: 1px solid #3e4451;
             min-width: 0; /* ЭТО КЛЮЧЕВОЕ ИЗМЕНЕНИЕ ДЛЯ FLEXBOX! */
         }
-
         /* Общие стили для элементов */
         button { 
             font-size: 16px; 
@@ -49,7 +47,6 @@
             width: 100%; 
         }
         button:hover { background-color: #98c379; }
-
         #status-log { 
             font-family: "Courier New", Courier, monospace; 
             background-color: #1e1e1e; 
@@ -63,7 +60,6 @@
             margin-top: auto; 
             font-size: 0.85em; /* Уменьшаем размер шрифта */
         }
-        
         /* Стили для списка шагов */
         #steps-heading { 
             font-size: 1.2em; 
@@ -87,7 +83,20 @@
             font-size: 1em; 
             margin-bottom: 0.5em;
         }
-        label { display: flex; align-items: center; margin-bottom: 0.5em; cursor: pointer; }
+        label { 
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 0.5em; 
+            cursor: pointer; 
+        }
+        
+        /* --- НОВОЕ ПРАВИЛО ДЛЯ УМЕНЬШЕНИЯ ШРИФТА И ИНТЕРВАЛОВ В СПИСКЕ ШАГОВ --- */
+        #processing-steps label {
+            font-size: 0.9em;      /* Немного уменьшаем шрифт */
+            line-height: 1.1;     /* Уменьшаем межстрочное расстояние */
+            margin-bottom: 0.3em; /* Сближаем строки */
+        }
+
         input[type="checkbox"] { margin-right: 10px; }
         #processing-steps { 
             flex-grow: 1; 

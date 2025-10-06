@@ -39,7 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.processDocxFile = processDocxFile;
 const path = __importStar(require("path"));
 const adm_zip_1 = __importDefault(require("adm-zip"));
-// Импортируем все наши атомарные функции
+// ... (все импорты остаются теми же)
 const applyStyles_1 = require("./steps/applyStyles");
 const setPageMargins_1 = require("./steps/setPageMargins");
 const removeStyles_1 = require("./steps/removeStyles");
@@ -51,12 +51,11 @@ const removeDuplicateSpaces_1 = require("./steps/removeDuplicateSpaces");
 const removeTrailingSpaces_1 = require("./steps/removeTrailingSpaces");
 const removeTextColor_1 = require("./steps/removeTextColor");
 const cleanupDocumentStructure_1 = require("./steps/cleanupDocumentStructure");
-// ++ ИМПОРТИРУЕМ ВСЕ НОВЫЕ ФУНКЦИИ ++
 const assimilateSpaceRuns_1 = require("./steps/assimilateSpaceRuns");
 const mergeConsecutiveRuns_1 = require("./steps/mergeConsecutiveRuns");
 const mergeInstructionTextRuns_1 = require("./steps/mergeInstructionTextRuns");
+const cleanupParaProps_1 = require("./steps/cleanupParaProps");
 const replaceSpaceWithNbspAfterNumbering_1 = require("./steps/replaceSpaceWithNbspAfterNumbering");
-// Карта функций для вызова атомов по ID
 const functionMap = {
     applyStyles: applyStyles_1.applyStyles,
     setPageMargins: setPageMargins_1.setPageMargins,
@@ -69,10 +68,10 @@ const functionMap = {
     removeTrailingSpaces: removeTrailingSpaces_1.removeTrailingSpaces,
     removeTextColor: removeTextColor_1.removeTextColor,
     cleanupDocumentStructure: cleanupDocumentStructure_1.cleanupDocumentStructure,
-    // ++ РЕГИСТРИРУЕМ ВСЕ НОВЫЕ ФУНКЦИИ В ПРАВИЛЬНОМ ПОРЯДКЕ ++
     assimilateSpaceRuns: assimilateSpaceRuns_1.assimilateSpaceRuns,
     mergeConsecutiveRuns: mergeConsecutiveRuns_1.mergeConsecutiveRuns,
     mergeInstructionTextRuns: mergeInstructionTextRuns_1.mergeInstructionTextRuns,
+    cleanupParaProps: cleanupParaProps_1.cleanupParaProps,
     replaceSpaceWithNbspAfterNumbering: replaceSpaceWithNbspAfterNumbering_1.replaceSpaceWithNbspAfterNumbering
 };
 // === ГЛАВНАЯ ФУНКЦИЯ ПРОЦЕССОРА ===
@@ -85,34 +84,44 @@ async function processDocxFile(filePath, enabledSteps) {
     };
     try {
         const zip = new adm_zip_1.default(filePath);
-        const fileContents = {};
-        const uniqueTargetFiles = [...new Set(enabledSteps.map(step => step.targetFile))];
-        for (const targetFile of uniqueTargetFiles) {
-            const entry = zip.getEntry(targetFile);
-            fileContents[targetFile] = entry ? entry.getData().toString('utf-8') : '';
-        }
+        // Группируем шаги по целевому файлу, чтобы читать и писать каждый файл только один раз за конвейер.
+        const stepsByFile = {};
         for (const step of enabledSteps) {
-            const processFunction = functionMap[step.id];
-            if (!processFunction) {
-                report.logMessages.push(`  Предупреждение: Функция для шага "${step.id}" не найдена.`);
+            if (!stepsByFile[step.targetFile]) {
+                stepsByFile[step.targetFile] = [];
+            }
+            stepsByFile[step.targetFile].push(step);
+        }
+        // Обрабатываем каждый целевой файл отдельно
+        for (const targetFile in stepsByFile) {
+            const entry = zip.getEntry(targetFile);
+            if (!entry) {
+                report.logMessages.push(`  Предупреждение: Целевой файл "${targetFile}" не найден в архиве.`);
                 continue;
             }
-            let currentContent = fileContents[step.targetFile];
-            const result = processFunction(currentContent, step.params);
-            fileContents[step.targetFile] = result.xml;
-            let stepReportMessage = `Шаг "${step.name}": `;
-            if (['applyStyles', 'setPageMargins'].includes(step.id)) {
-                stepReportMessage += result.changes > 0 ? `Выполнен.` : `Пропущен (изменений не требовалось).`;
+            let currentContent = entry.getData().toString('utf-8');
+            // Запускаем конвейер для этого файла
+            for (const step of stepsByFile[targetFile]) {
+                const processFunction = functionMap[step.id];
+                if (!processFunction) {
+                    report.logMessages.push(`  Предупреждение: Функция для шага "${step.id}" не найдена.`);
+                    continue;
+                }
+                const result = processFunction(currentContent, step.params);
+                currentContent = result.xml; // Обновляем контент для следующего шага в конвейере
+                // Логируем результат шага
+                let stepReportMessage = `Шаг "${step.name}": `;
+                if (['applyStyles', 'setPageMargins'].includes(step.id)) {
+                    stepReportMessage += result.changes > 0 ? `Выполнен.` : `Пропущен (изменений не требовалось).`;
+                }
+                else {
+                    stepReportMessage += result.changes > 0 ? `Произведено замен: ${result.changes}.` : `Изменений не найдено.`;
+                }
+                report.logMessages.push(stepReportMessage);
             }
-            else {
-                stepReportMessage += result.changes > 0 ? `Произведено замен: ${result.changes}.` : `Изменений не найдено.`;
-            }
-            report.logMessages.push(stepReportMessage);
+            // После всех шагов для данного файла, обновляем его в zip-архиве
+            zip.updateFile(targetFile, Buffer.from(currentContent, 'utf-8'));
         }
-        for (const targetFile in fileContents) {
-            zip.updateFile(targetFile, Buffer.from(fileContents[targetFile], 'utf-8'));
-        }
-        // --- ИЗМЕНЕНА ЛОГИКА СОХРАНЕНИЯ ---
         const originalDirectory = path.dirname(filePath);
         const newFileName = `cleared_${originalFileName}`;
         const outPath = path.join(originalDirectory, newFileName);
