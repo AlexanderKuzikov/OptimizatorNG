@@ -51,8 +51,9 @@ const removeDuplicateSpaces_1 = require("./steps/removeDuplicateSpaces");
 const removeTrailingSpaces_1 = require("./steps/removeTrailingSpaces");
 const removeTextColor_1 = require("./steps/removeTextColor");
 const cleanupDocumentStructure_1 = require("./steps/cleanupDocumentStructure");
-// ++ ДОБАВЛЕН НОВЫЙ ИМПОРТ ++
 const mergeConsecutiveRuns_1 = require("./steps/mergeConsecutiveRuns");
+// ++ ДОБАВЛЕН НОВЫЙ ИМПОРТ ++
+const mergeInstructionTextRuns_1 = require("./steps/mergeInstructionTextRuns");
 const replaceSpaceWithNbspAfterNumbering_1 = require("./steps/replaceSpaceWithNbspAfterNumbering");
 // Карта функций для вызова атомов по ID
 const functionMap = {
@@ -67,8 +68,9 @@ const functionMap = {
     removeTrailingSpaces: removeTrailingSpaces_1.removeTrailingSpaces,
     removeTextColor: removeTextColor_1.removeTextColor,
     cleanupDocumentStructure: cleanupDocumentStructure_1.cleanupDocumentStructure,
-    // ++ ДОБАВЛЕНА НОВАЯ ФУНКЦИЯ ++
     mergeConsecutiveRuns: mergeConsecutiveRuns_1.mergeConsecutiveRuns,
+    // ++ ДОБАВЛЕНА НОВАЯ ФУНКЦИЯ ++
+    mergeInstructionTextRuns: mergeInstructionTextRuns_1.mergeInstructionTextRuns,
     replaceSpaceWithNbspAfterNumbering: replaceSpaceWithNbspAfterNumbering_1.replaceSpaceWithNbspAfterNumbering
 };
 // === ГЛАВНАЯ ФУНКЦИЯ ПРОЦЕССОРА ===

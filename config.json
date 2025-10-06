@@ -108,8 +108,16 @@
     },
     {
       "id": "mergeConsecutiveRuns",
-      "name": "Объединение последовательных текстовых блоков",
-      "description": "Склеивает соседние блоки текста (<w:r>) с одинаковым форматированием для оптимизации структуры документа.",
+      "name": "Объединение текстовых блоков (w:t)",
+      "description": "Склеивает соседние блоки обычного текста (<w:r>) с одинаковым форматированием.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
+    },
+    {
+      "id": "mergeInstructionTextRuns",
+      "name": "Объединение блоков инструкций (w:instrText)",
+      "description": "Склеивает соседние блоки текста инструкций (<w:instrText>) для очистки полей.",
       "targetFile": "word/document.xml",
       "enabled": true,
       "params": {}

@@ -14,8 +14,9 @@ import { removeDuplicateSpaces } from './steps/removeDuplicateSpaces';
 import { removeTrailingSpaces } from './steps/removeTrailingSpaces';
 import { removeTextColor } from './steps/removeTextColor';
 import { cleanupDocumentStructure } from './steps/cleanupDocumentStructure';
-// ++ ДОБАВЛЕН НОВЫЙ ИМПОРТ ++
 import { mergeConsecutiveRuns } from './steps/mergeConsecutiveRuns';
+// ++ ДОБАВЛЕН НОВЫЙ ИМПОРТ ++
+import { mergeInstructionTextRuns } from './steps/mergeInstructionTextRuns';
 import { replaceSpaceWithNbspAfterNumbering } from './steps/replaceSpaceWithNbspAfterNumbering';
 
 // --- ИНТЕРФЕЙСЫ ---
@@ -50,8 +51,9 @@ const functionMap: { [key: string]: (xml: string, params: any) => StepResult } =
     removeTrailingSpaces,
     removeTextColor,
     cleanupDocumentStructure,
-    // ++ ДОБАВЛЕНА НОВАЯ ФУНКЦИЯ ++
     mergeConsecutiveRuns,
+    // ++ ДОБАВЛЕНА НОВАЯ ФУНКЦИЯ ++
+    mergeInstructionTextRuns,
     replaceSpaceWithNbspAfterNumbering
 };
 
