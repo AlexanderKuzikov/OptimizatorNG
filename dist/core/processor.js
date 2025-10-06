@@ -51,8 +51,9 @@ const removeDuplicateSpaces_1 = require("./steps/removeDuplicateSpaces");
 const removeTrailingSpaces_1 = require("./steps/removeTrailingSpaces");
 const removeTextColor_1 = require("./steps/removeTextColor");
 const cleanupDocumentStructure_1 = require("./steps/cleanupDocumentStructure");
+// ++ ИМПОРТИРУЕМ ВСЕ НОВЫЕ ФУНКЦИИ ++
+const assimilateSpaceRuns_1 = require("./steps/assimilateSpaceRuns");
 const mergeConsecutiveRuns_1 = require("./steps/mergeConsecutiveRuns");
-// ++ ДОБАВЛЕН НОВЫЙ ИМПОРТ ++
 const mergeInstructionTextRuns_1 = require("./steps/mergeInstructionTextRuns");
 const replaceSpaceWithNbspAfterNumbering_1 = require("./steps/replaceSpaceWithNbspAfterNumbering");
 // Карта функций для вызова атомов по ID
@@ -68,18 +69,19 @@ const functionMap = {
     removeTrailingSpaces: removeTrailingSpaces_1.removeTrailingSpaces,
     removeTextColor: removeTextColor_1.removeTextColor,
     cleanupDocumentStructure: cleanupDocumentStructure_1.cleanupDocumentStructure,
+    // ++ РЕГИСТРИРУЕМ ВСЕ НОВЫЕ ФУНКЦИИ В ПРАВИЛЬНОМ ПОРЯДКЕ ++
+    assimilateSpaceRuns: assimilateSpaceRuns_1.assimilateSpaceRuns,
     mergeConsecutiveRuns: mergeConsecutiveRuns_1.mergeConsecutiveRuns,
-    // ++ ДОБАВЛЕНА НОВАЯ ФУНКЦИЯ ++
     mergeInstructionTextRuns: mergeInstructionTextRuns_1.mergeInstructionTextRuns,
     replaceSpaceWithNbspAfterNumbering: replaceSpaceWithNbspAfterNumbering_1.replaceSpaceWithNbspAfterNumbering
 };
 // === ГЛАВНАЯ ФУНКЦИЯ ПРОЦЕССОРА ===
-async function processDocxFile(filePath, enabledSteps, outDirectory) {
-    const fileName = path.basename(filePath);
+async function processDocxFile(filePath, enabledSteps) {
+    const originalFileName = path.basename(filePath);
     const report = {
-        fileName: fileName,
+        fileName: originalFileName,
         success: false,
-        logMessages: [`--- Обрабатываю файл: ${fileName} ---`]
+        logMessages: [`--- Обрабатываю файл: ${originalFileName} ---`]
     };
     try {
         const zip = new adm_zip_1.default(filePath);
@@ -110,7 +112,10 @@ async function processDocxFile(filePath, enabledSteps, outDirectory) {
         for (const targetFile in fileContents) {
             zip.updateFile(targetFile, Buffer.from(fileContents[targetFile], 'utf-8'));
         }
-        const outPath = path.join(outDirectory, fileName);
+        // --- ИЗМЕНЕНА ЛОГИКА СОХРАНЕНИЯ ---
+        const originalDirectory = path.dirname(filePath);
+        const newFileName = `cleared_${originalFileName}`;
+        const outPath = path.join(originalDirectory, newFileName);
         zip.writeZip(outPath);
         report.logMessages.push(`  Успешно сохранено в: ${outPath}`);
         report.success = true;

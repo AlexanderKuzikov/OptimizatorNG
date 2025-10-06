@@ -53,10 +53,10 @@ let mainWindow;
 let selectedFilePaths = [];
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
-        width: 1000, // Установим фиксированную ширину
-        height: 700, // Установим фиксированную высоту
-        resizable: false, // Запретить изменение размера
-        maximizable: false, // Запретить разворачивание на весь экран
+        width: 1000,
+        height: 700,
+        resizable: false,
+        maximizable: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -66,12 +66,9 @@ function createWindow() {
     mainWindow.setMenu(null);
     mainWindow.loadFile('index.html');
 }
-// НОВАЯ ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ОЖИДАНИЯ
 function askToRetry(window, fileName) {
     return new Promise(resolve => {
         window.webContents.send('update-status', `\n  ОШИБКА: Файл ${fileName} заблокирован. Пожалуйста, закройте его и нажмите ENTER в консоли.`);
-        // Note: process.stdin is only available in main process, not renderer.
-        // For production Electron apps, a dialog box would be used here.
         process.stdin.setRawMode(true);
         process.stdin.resume();
         process.stdin.once('data', key => {
@@ -112,10 +109,7 @@ electron_1.ipcMain.handle('start-processing', async (event, enabledStepIds) => {
     }
     const config = readConfig();
     const stepsToRun = config.processingSteps.filter(step => enabledStepIds.includes(step.id));
-    const outDir = path.join(path.dirname(selectedFilePaths[0]), 'OUT');
-    if (!fs.existsSync(outDir)) {
-        fs.mkdirSync(outDir);
-    }
+    // -- БЛОК С outDir УДАЛЕН --
     mainWindow?.webContents.send('update-status', '\nНачинаю обработку файлов...');
     for (let i = 0; i < selectedFilePaths.length; i++) {
         const filePath = selectedFilePaths[i];
@@ -125,7 +119,8 @@ electron_1.ipcMain.handle('start-processing', async (event, enabledStepIds) => {
         const MAX_RETRIES = 3;
         do {
             try {
-                report = await (0, processor_1.processDocxFile)(filePath, stepsToRun, outDir);
+                // -- ПАРАМЕТР outDir УДАЛЕН ИЗ ВЫЗОВА --
+                report = await (0, processor_1.processDocxFile)(filePath, stepsToRun);
                 report.logMessages.forEach(msg => mainWindow?.webContents.send('update-status', msg));
                 if (!report.success && report.error && report.error.includes('EBUSY')) {
                     if (retryCount < MAX_RETRIES) {

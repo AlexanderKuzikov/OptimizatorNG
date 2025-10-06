@@ -107,6 +107,14 @@
       "params": {}
     },
     {
+      "id": "assimilateSpaceRuns",
+      "name": "Ассимиляция одиночных пробелов",
+      "description": "Присоединяет одиночные пробелы в отдельных блоках к предыдущему текстовому блоку.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
+    },
+    {
       "id": "mergeConsecutiveRuns",
       "name": "Объединение текстовых блоков (w:t)",
       "description": "Склеивает соседние блоки обычного текста (<w:r>) с одинаковым форматированием.",

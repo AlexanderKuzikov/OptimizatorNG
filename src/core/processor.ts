@@ -14,8 +14,9 @@ import { removeDuplicateSpaces } from './steps/removeDuplicateSpaces';
 import { removeTrailingSpaces } from './steps/removeTrailingSpaces';
 import { removeTextColor } from './steps/removeTextColor';
 import { cleanupDocumentStructure } from './steps/cleanupDocumentStructure';
+// ++ ИМПОРТИРУЕМ ВСЕ НОВЫЕ ФУНКЦИИ ++
+import { assimilateSpaceRuns } from './steps/assimilateSpaceRuns';
 import { mergeConsecutiveRuns } from './steps/mergeConsecutiveRuns';
-// ++ ДОБАВЛЕН НОВЫЙ ИМПОРТ ++
 import { mergeInstructionTextRuns } from './steps/mergeInstructionTextRuns';
 import { replaceSpaceWithNbspAfterNumbering } from './steps/replaceSpaceWithNbspAfterNumbering';
 
@@ -51,8 +52,9 @@ const functionMap: { [key: string]: (xml: string, params: any) => StepResult } =
     removeTrailingSpaces,
     removeTextColor,
     cleanupDocumentStructure,
+    // ++ РЕГИСТРИРУЕМ ВСЕ НОВЫЕ ФУНКЦИИ В ПРАВИЛЬНОМ ПОРЯДКЕ ++
+    assimilateSpaceRuns,
     mergeConsecutiveRuns,
-    // ++ ДОБАВЛЕНА НОВАЯ ФУНКЦИЯ ++
     mergeInstructionTextRuns,
     replaceSpaceWithNbspAfterNumbering
 };
@@ -60,14 +62,13 @@ const functionMap: { [key: string]: (xml: string, params: any) => StepResult } =
 // === ГЛАВНАЯ ФУНКЦИЯ ПРОЦЕССОРА ===
 export async function processDocxFile(
     filePath: string,
-    enabledSteps: ProcessingStep[],
-    outDirectory: string
+    enabledSteps: ProcessingStep[]
 ): Promise<ProcessorReport> {
-    const fileName = path.basename(filePath);
+    const originalFileName = path.basename(filePath);
     const report: ProcessorReport = {
-        fileName: fileName,
+        fileName: originalFileName,
         success: false,
-        logMessages: [`--- Обрабатываю файл: ${fileName} ---`]
+        logMessages: [`--- Обрабатываю файл: ${originalFileName} ---`]
     };
 
     try {
@@ -104,7 +105,11 @@ export async function processDocxFile(
             zip.updateFile(targetFile, Buffer.from(fileContents[targetFile], 'utf-8'));
         }
 
-        const outPath = path.join(outDirectory, fileName);
+        // --- ИЗМЕНЕНА ЛОГИКА СОХРАНЕНИЯ ---
+        const originalDirectory = path.dirname(filePath);
+        const newFileName = `cleared_${originalFileName}`;
+        const outPath = path.join(originalDirectory, newFileName);
+        
         zip.writeZip(outPath);
         report.logMessages.push(`  Успешно сохранено в: ${outPath}`);
         report.success = true;
