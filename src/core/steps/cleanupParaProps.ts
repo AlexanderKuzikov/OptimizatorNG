@@ -1,4 +1,4 @@
-import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+import { JSDOM } from 'jsdom';
 
 interface StepResult {
   xml: string;
@@ -6,16 +6,18 @@ interface StepResult {
 }
 
 export function cleanupParaProps(xml: string, params: any): StepResult {
-  if (!xml || xml.trim() === '') {
-    return { xml: '', changes: 0 };
-  }
-
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(`<dummy>${xml}</dummy>`, 'application/xml');
+  if (!xml || xml.trim() === '') return { xml: '', changes: 0 };
   let changes = 0;
+  const dummyTag = 'dummy';
+  const namespace = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 
+  const cleanXml = xml.replace(/<\?xml[^>]*\?>\s*/, '');
+  const wrappedXml = `<${dummyTag} xmlns:w="${namespace}">${cleanXml}</${dummyTag}>`;
+
+  const dom = new JSDOM(wrappedXml, { contentType: 'application/xml' });
+  const doc = dom.window.document;
+  
   const allPPrs = Array.from(doc.getElementsByTagName('w:pPr'));
-
   for (const pPr of allPPrs) {
     const parent = pPr.parentNode;
     if (!parent || parent.nodeName !== 'w:p') {
@@ -25,7 +27,6 @@ export function cleanupParaProps(xml: string, params: any): StepResult {
       }
       continue;
     }
-
     const rPrs = Array.from(pPr.getElementsByTagName('w:rPr'));
     if (rPrs.length > 0) {
       rPrs.forEach(rPr => {
@@ -36,11 +37,17 @@ export function cleanupParaProps(xml: string, params: any): StepResult {
   }
 
   if (changes > 0) {
-    const serializer = new XMLSerializer();
-    const fullXml = serializer.serializeToString(doc);
-    const finalXml = fullXml.substring('<dummy>'.length, fullXml.length - '</dummy>'.length);
-    return { xml: finalXml, changes };
-  }
+    const serializer = new dom.window.XMLSerializer();
+    let serializedXml = serializer.serializeToString(doc.documentElement);
+    serializedXml = serializedXml.replace(/<\/w:p><w:p>/g, '</w:p>\n<w:p>');
 
+    const startTag = `<${dummyTag} xmlns:w="${namespace}">`;
+    const endTag = `</${dummyTag}>`;
+    if (serializedXml.startsWith(startTag) && serializedXml.endsWith(endTag)) {
+      const finalXml = serializedXml.substring(startTag.length, serializedXml.length - endTag.length);
+      return { xml: finalXml, changes };
+    }
+    return { xml, changes: 0 };
+  }
   return { xml, changes: 0 };
 }

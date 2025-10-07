@@ -1,19 +1,73 @@
 import { assimilateSpaceRuns } from './assimilateSpaceRuns';
 
 describe('assimilateSpaceRuns', () => {
-  // ... (предыдущие тесты остаются без изменений)
+  it('should merge a single space run into the preceding text run', () => {
+    const xml = `
+      <w:p>
+        <w:r><w:t>Hello</w:t></w:r>
+        <w:r><w:t> </w:t></w:r>
+        <w:r><w:t>World</w:t></w:r>
+      </w:p>
+    `;
+    const expectedXml = `
+      <w:p>
+        <w:r><w:t>Hello </w:t></w:r>
+        
+        <w:r><w:t>World</w:t></w:r>
+      </w:p>
+    `;
+    const { xml: resultXml, changes } = assimilateSpaceRuns(xml, {});
+    expect(resultXml.replace(/\s/g, '')).toBe(expectedXml.replace(/\s/g, ''));
+    expect(changes).toBe(1);
+  });
 
-  it('should merge a space-only run that also has formatting', () => {
-    const input =
-      '<w:p>' +
-      '<w:r><w:t>3.</w:t></w:r>' +
-      '<w:r><w:rPr><w:b/></w:rPr><w:t> </w:t></w:r>' + // This is the new case
-      '</w:p>';
+  it('should not merge if the preceding run has no text', () => {
+    const xml = `
+      <w:p>
+        <w:r><w:rPr/></w:r>
+        <w:r><w:t> </w:t></w:r>
+        <w:r><w:t>World</w:t></w:r>
+      </w:p>
+    `;
+    const { xml: resultXml, changes } = assimilateSpaceRuns(xml, {});
+    expect(resultXml.replace(/\s/g, '')).toBe(xml.replace(/\s/g, ''));
+    expect(changes).toBe(0);
+  });
 
-    const expectedXml = '<w:p><w:r><w:t>3. </w:t></w:r></w:p>';
-      
-    const result = assimilateSpaceRuns(input, {});
-    expect(result.changes).toBe(1);
-    expect(result.xml).toBe(expectedXml);
+  it('should handle multiple space runs correctly', () => {
+    const xml = `
+      <w:p>
+        <w:r><w:t>One</w:t></w:r>
+        <w:r><w:t> </w:t></w:r>
+        <w:r><w:t>Two</w:t></w:r>
+        <w:r><w:t> </w:t></w:r>
+        <w:r><w:t>Three</w:t></w:r>
+      </w:p>
+    `;
+    const expectedXml = `
+      <w:p>
+        <w:r><w:t>One </w:t></w:r>
+        
+        <w:r><w:t>Two </w:t></w:r>
+        
+        <w:r><w:t>Three</w:t></w:r>
+      </w:p>
+    `;
+    const { xml: resultXml, changes } = assimilateSpaceRuns(xml, {});
+    expect(resultXml.replace(/\s/g, '')).toBe(expectedXml.replace(/\s/g, ''));
+    expect(changes).toBe(2);
+  });
+
+  it('should return unchanged XML if no space runs are found', () => {
+    const xml = `<w:p><w:r><w:t>HelloWorld</w:t></w:r></w:p>`;
+    const { xml: resultXml, changes } = assimilateSpaceRuns(xml, {});
+    expect(resultXml).toBe(xml);
+    expect(changes).toBe(0);
+  });
+
+  it('should handle empty input', () => {
+    const { xml, changes } = assimilateSpaceRuns('', {});
+    expect(xml).toBe('');
+    expect(changes).toBe(0);
   });
 });

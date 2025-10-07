@@ -4,7 +4,9 @@
   "description": "Десктопное приложение для оптимизации шаблонов документов.",
   "main": "dist/main.js",
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --platform=node --outfile=dist/main.js --external:electron && esbuild src/renderer.ts --bundle --platform=browser --outfile=dist/renderer.js",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "esbuild src/renderer.ts --bundle --platform=browser --outfile=dist/renderer.js",
+    "build": "npm run build:main && npm run build:renderer",
     "start": "npm run build && electron .",
     "test": "jest",
     "dist": "npm run build && electron-builder"
@@ -15,7 +17,7 @@
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
     "@types/jest": "^29.5.14",
-    "@types/xmldom": "^0.1.34",
+    "@types/jsdom": "^27.0.0",
     "electron": "^31.0.2",
     "electron-builder": "^24.13.3",
     "esbuild": "^0.25.9",
@@ -27,7 +29,14 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
-    "@xmldom/xmldom": "^0.8.10"
+    "jsdom": "^27.0.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    }
   },
   "build": {
     "appId": "com.kombinator.optimizatorng",
@@ -35,7 +44,9 @@
     "files": [
       "dist/**/*",
       "index.html",
-      "src/templates/*.xml"
+      "src/templates/*.xml",
+      "config.json",
+      "node_modules/**/*"
     ],
     "directories": {
       "output": "release"
@@ -46,6 +57,12 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
+    },
+    "extraResources": [
+        {
+            "from": "config.json",
+            "to": "config.json"
+        }
+    ]
   }
 }

@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
 
-// ... (все импорты остаются теми же)
+// ... все импорты остаются теми же
 import { applyStyles } from './steps/applyStyles';
 import { setPageMargins } from './steps/setPageMargins';
 import { removeStyles } from './steps/removeStyles';
@@ -21,7 +21,6 @@ import { cleanupParaProps } from './steps/cleanupParaProps';
 import { replaceSpaceWithNbspAfterNumbering } from './steps/replaceSpaceWithNbspAfterNumbering';
 
 
-// ... (интерфейсы и functionMap остаются теми же)
 interface StepResult { xml: string; changes: number; }
 
 interface ProcessingStep {
@@ -59,8 +58,8 @@ const functionMap: { [key: string]: (xml: string, params: any) => StepResult } =
     replaceSpaceWithNbspAfterNumbering
 };
 
+const XML_DECLARATION = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 
-// === ГЛАВНАЯ ФУНКЦИЯ ПРОЦЕССОРА ===
 export async function processDocxFile(
     filePath: string,
     enabledSteps: ProcessingStep[]
@@ -74,8 +73,6 @@ export async function processDocxFile(
 
     try {
         const zip = new AdmZip(filePath);
-
-        // Группируем шаги по целевому файлу, чтобы читать и писать каждый файл только один раз за конвейер.
         const stepsByFile: { [key: string]: ProcessingStep[] } = {};
         for (const step of enabledSteps) {
             if (!stepsByFile[step.targetFile]) {
@@ -84,17 +81,18 @@ export async function processDocxFile(
             stepsByFile[step.targetFile].push(step);
         }
 
-        // Обрабатываем каждый целевой файл отдельно
         for (const targetFile in stepsByFile) {
             const entry = zip.getEntry(targetFile);
             if (!entry) {
                 report.logMessages.push(`  Предупреждение: Целевой файл "${targetFile}" не найден в архиве.`);
                 continue;
             }
-            
             let currentContent = entry.getData().toString('utf-8');
             
-            // Запускаем конвейер для этого файла
+            if (currentContent.charCodeAt(0) === 0xFEFF) {
+                currentContent = currentContent.substring(1);
+            }
+
             for (const step of stepsByFile[targetFile]) {
                 const processFunction = functionMap[step.id];
                 if (!processFunction) {
@@ -103,9 +101,13 @@ export async function processDocxFile(
                 }
                 
                 const result = processFunction(currentContent, step.params);
-                currentContent = result.xml; // Обновляем контент для следующего шага в конвейере
+                
+                if (result.changes === 0 && result.xml !== currentContent) {
+                     report.logMessages.push(`  ПРЕДУПРЕЖДЕНИЕ: Шаг "${step.name}" сообщил об 0 изменениях, но изменил XML. Откат шага.`);
+                } else {
+                    currentContent = result.xml;
+                }
 
-                // Логируем результат шага
                 let stepReportMessage = `Шаг "${step.name}": `;
                 if (['applyStyles', 'setPageMargins'].includes(step.id)) {
                     stepReportMessage += result.changes > 0 ? `Выполнен.` : `Пропущен (изменений не требовалось).`;
@@ -115,14 +117,18 @@ export async function processDocxFile(
                 report.logMessages.push(stepReportMessage);
             }
             
-            // После всех шагов для данного файла, обновляем его в zip-архиве
+            // --- ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ 3: УДАЛЕН ПЕРЕНОС СТРОКИ ---
+            if (!currentContent.startsWith('<?xml')) {
+                currentContent = XML_DECLARATION + currentContent;
+            }
+            // --------------------------------------------------------
+            
             zip.updateFile(targetFile, Buffer.from(currentContent, 'utf-8'));
         }
 
         const originalDirectory = path.dirname(filePath);
         const newFileName = `cleared_${originalFileName}`;
         const outPath = path.join(originalDirectory, newFileName);
-        
         zip.writeZip(outPath);
         report.logMessages.push(`  Успешно сохранено в: ${outPath}`);
         report.success = true;

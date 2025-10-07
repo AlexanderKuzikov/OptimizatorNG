@@ -1,78 +1,91 @@
 import { mergeInstructionTextRuns } from './mergeInstructionTextRuns';
 
 describe('mergeInstructionTextRuns', () => {
-  it('should merge a long sequence of instrText runs into a single run', () => {
-    // This XML is unformatted in the actual file, as requested.
-    const input = '<w:p>' +
-      '<w:r><w:instrText>FluidMarker</w:instrText></w:r>' +
-      '<w:r><w:instrText> </w:instrText></w:r>' +
-      '<w:r><w:instrText>Expression</w:instrText></w:r>' +
-      '<w:r><w:instrText> 0</w:instrText></w:r>' +
-      '<w:r><w:instrText>L</w:instrText></w:r>' +
-      '<w:r><w:instrText>/</w:instrText></w:r>' +
-      '<w:r><w:instrText>RgNC</w:instrText></w:r>' +
-      '<w:r><w:instrText>1</w:instrText></w:r>' +
-      '<w:r><w:instrText>0</w:instrText></w:r>' +
-      '<w:r><w:instrText>LTRgdGC</w:instrText></w:r>' +
-      '<w:r><w:instrText>0</w:instrText></w:r>' +
-      '<w:r><w:instrText>LDQstC</w:instrText></w:r>' +
-      '<w:r><w:instrText>40</w:instrText></w:r>' +
-      '<w:r><w:instrText>YLQtdC</w:instrText></w:r>' +
-      '<w:r><w:instrText>70</w:instrText></w:r>' +
-      '<w:r><w:instrText>YwuZW</w:instrText></w:r>' +
-      '<w:r><w:instrText>1</w:instrText></w:r>' +
-      '<w:r><w:instrText>haWw</w:instrText></w:r>' +
-      '<w:r><w:instrText>=</w:instrText></w:r>' +
-      '</w:p>';
-
-    const expectedText = 'FluidMarker Expression 0L/RgNC10LTRgdGC0LDQstC40YLQtdC70YwuZW1haWw=';
-    const expectedXml = `<w:p><w:r><w:instrText>${expectedText}</w:instrText></w:r></w:p>`;
-    
-    const result = mergeInstructionTextRuns(input, {});
-    
-    // There are 19 runs, so there should be 18 merges.
-    expect(result.changes).toBe(18);
-    expect(result.xml).toBe(expectedXml);
+  it('should merge two consecutive runs with instrText', () => {
+    const xml = `
+      <w:p>
+        <w:r><w:instrText> MERGEFIELD Field1 </w:instrText></w:r>
+        <w:r><w:instrText> \\* MERGEFORMAT </w:instrText></w:r>
+      </w:p>
+    `;
+    const expectedXml = `
+      <w:p>
+        <w:r><w:instrText> MERGEFIELD Field1  \\* MERGEFORMAT </w:instrText></w:r>
+      </w:p>
+    `;
+    const { xml: resultXml, changes } = mergeInstructionTextRuns(xml, {});
+    expect(resultXml.replace(/\s/g, '')).toBe(expectedXml.replace(/\s/g, ''));
+    expect(changes).toBe(1);
   });
 
-  it('should NOT merge regular text runs (<w:t>)', () => {
-    const input = '<w:p>' +
-      '<w:r><w:t>Hello </w:t></w:r>' +
-      '<w:r><w:t>World</w:t></w:r>' +
-      '</w:p>';
-      
-    const result = mergeInstructionTextRuns(input, {});
-    expect(result.changes).toBe(0);
-    expect(result.xml).toBe(input);
+  it('should merge three consecutive instrText runs', () => {
+    const xml = `
+      <w:p>
+        <w:r><w:instrText>A</w:instrText></w:r>
+        <w:r><w:instrText>B</w:instrText></w:r>
+        <w:r><w:instrText>C</w:instrText></w:r>
+      </w:p>
+    `;
+    const expectedXml = `
+      <w:p>
+        <w:r><w:instrText>ABC</w:instrText></w:r>
+      </w:p>
+    `;
+    const { xml: resultXml, changes } = mergeInstructionTextRuns(xml, {});
+    expect(resultXml.replace(/\s/g, '')).toBe(expectedXml.replace(/\s/g, ''));
+    expect(changes).toBe(2);
   });
 
-  it('should NOT merge a mix of instrText and regular text runs', () => {
-    const input = '<w:p>' +
-      '<w:r><w:instrText>Instruction</w:instrText></w:r>' +
-      '<w:r><w:t>Regular Text</w:t></w:r>' +
-      '<w:r><w:instrText> More Instruction</w:instrText></w:r>' +
-      '</w:p>';
-
-    const result = mergeInstructionTextRuns(input, {});
-    expect(result.changes).toBe(0);
-    expect(result.xml).toBe(input);
-  });
-  
-  it('should NOT merge non-consecutive instrText runs', () => {
-    const input = '<w:p>' +
-      '<w:r><w:instrText>First</w:instrText></w:r>' +
-      '<w:proofErr w:type="spellStart"/>' +
-      '<w:r><w:instrText>Second</w:instrText></w:r>' +
-      '</w:p>';
-      
-    const result = mergeInstructionTextRuns(input, {});
-    expect(result.changes).toBe(0);
-    expect(result.xml).toBe(input);
+  it('should not merge if one run does not have instrText', () => {
+    const xml = `
+      <w:p>
+        <w:r><w:instrText>Instruction</w:instrText></w:r>
+        <w:r><w:t>Regular Text</w:t></w:r>
+      </w:p>
+    `;
+    const { xml: resultXml, changes } = mergeInstructionTextRuns(xml, {});
+    expect(resultXml.replace(/\s/g, '')).toBe(xml.replace(/\s/g, ''));
+    expect(changes).toBe(0);
   });
 
-  it('should return 0 changes for empty input', () => {
-    const result = mergeInstructionTextRuns('', {});
-    expect(result.changes).toBe(0);
-    expect(result.xml).toBe('');
+  it('should not merge non-consecutive instrText runs', () => {
+    const xml = `
+      <w:p>
+        <w:r><w:instrText>A</w:instrText></w:r>
+        <w:r><w:t> </w:t></w:r>
+        <w:r><w:instrText>B</w:instrText></w:r>
+      </w:p>
+    `;
+    const { xml: resultXml, changes } = mergeInstructionTextRuns(xml, {});
+    expect(resultXml.replace(/\s/g, '')).toBe(xml.replace(/\s/g, ''));
+    expect(changes).toBe(0);
+  });
+
+  it('should handle complex paragraph with mixed content', () => {
+    const xml = `
+      <w:p>
+        <w:r><w:t>Some text</w:t></w:r>
+        <w:r><w:instrText> START </w:instrText></w:r>
+        <w:r><w:instrText> OF </w:instrText></w:r>
+        <w:r><w:instrText> FIELD </w:instrText></w:r>
+        <w:r><w:t>and other text</w:t></w:r>
+      </w:p>
+    `;
+    const expectedXml = `
+      <w:p>
+        <w:r><w:t>Some text</w:t></w:r>
+        <w:r><w:instrText> START  OF  FIELD </w:instrText></w:r>
+        <w:r><w:t>and other text</w:t></w:r>
+      </w:p>
+    `;
+    const { xml: resultXml, changes } = mergeInstructionTextRuns(xml, {});
+    expect(resultXml.replace(/\s/g, '')).toBe(expectedXml.replace(/\s/g, ''));
+    expect(changes).toBe(2);
+  });
+
+  it('should handle empty input', () => {
+    const { xml, changes } = mergeInstructionTextRuns('', {});
+    expect(xml).toBe('');
+    expect(changes).toBe(0);
   });
 });

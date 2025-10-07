@@ -18,16 +18,18 @@ export interface Config {
 }
 
 function readConfig(): Config {
-    const basePath = app.isPackaged ? app.getAppPath() : path.join(__dirname, '..');
+    const basePath = path.join(__dirname, '..');
     const configPath = path.join(basePath, 'config.json');
     const config: Config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-
+    
     const templatesDir = path.join(basePath, 'src', 'templates');
+    
     const applyStylesStep = config.processingSteps.find(step => step.id === 'applyStyles');
     if (applyStylesStep && applyStylesStep.params && applyStylesStep.params.templateFileName) {
         const templatePath = path.join(templatesDir, applyStylesStep.params.templateFileName);
         applyStylesStep.params.templateContent = fs.readFileSync(templatePath, 'utf-8');
     }
+
     return config;
 }
 
@@ -77,7 +79,6 @@ ipcMain.handle('select-files', async (): Promise<void> => {
         properties: ['openFile', 'multiSelections'],
         filters: [{ name: 'Word Documents', extensions: ['docx'] }]
     });
-
     if (filePaths && filePaths.length > 0) {
         selectedFilePaths = filePaths;
         mainWindow.webContents.send('update-status', `Выбрано файлов: ${filePaths.length}`);
@@ -97,8 +98,6 @@ ipcMain.handle('start-processing', async (event, enabledStepIds: string[]): Prom
     const config: Config = readConfig();
     const stepsToRun: ProcessingStep[] = config.processingSteps.filter(step => enabledStepIds.includes(step.id));
 
-    // -- БЛОК С outDir УДАЛЕН --
-
     mainWindow?.webContents.send('update-status', '\nНачинаю обработку файлов...');
 
     for (let i = 0; i < selectedFilePaths.length; i++) {
@@ -110,11 +109,8 @@ ipcMain.handle('start-processing', async (event, enabledStepIds: string[]): Prom
 
         do {
             try {
-                // -- ПАРАМЕТР outDir УДАЛЕН ИЗ ВЫЗОВА --
                 report = await processDocxFile(filePath, stepsToRun);
-
                 report.logMessages.forEach(msg => mainWindow?.webContents.send('update-status', msg));
-
                 if (!report.success && report.error && report.error.includes('EBUSY')) {
                     if (retryCount < MAX_RETRIES) {
                         retryCount++;
