@@ -88,10 +88,19 @@ export async function processDocxFile(
                 continue;
             }
             let currentContent = entry.getData().toString('utf-8');
-            
+
             if (currentContent.charCodeAt(0) === 0xFEFF) {
                 currentContent = currentContent.substring(1);
             }
+
+            // --- ДОБАВЛЕНО: Сохраняем оригинальный открывающий тег <w:document ...> ---
+            let originalDocumentOpeningTag = '';
+            const documentOpeningTagMatch = currentContent.match(/^(<\?xml[^>]*\?>\s*)?(<w:document[^>]*>)/);
+            if (documentOpeningTagMatch && targetFile === 'word/document.xml') {
+                originalDocumentOpeningTag = documentOpeningTagMatch[2]; // Группа 2 захватывает <w:document...>
+            }
+            // --------------------------------------------------------------------------
+
 
             for (const step of stepsByFile[targetFile]) {
                 const processFunction = functionMap[step.id];
@@ -99,9 +108,7 @@ export async function processDocxFile(
                     report.logMessages.push(`  Предупреждение: Функция для шага "${step.id}" не найдена.`);
                     continue;
                 }
-                
                 const result = processFunction(currentContent, step.params);
-                
                 if (result.changes === 0 && result.xml !== currentContent) {
                      report.logMessages.push(`  ПРЕДУПРЕЖДЕНИЕ: Шаг "${step.name}" сообщил об 0 изменениях, но изменил XML. Откат шага.`);
                 } else {
@@ -116,13 +123,18 @@ export async function processDocxFile(
                 }
                 report.logMessages.push(stepReportMessage);
             }
-            
-            // --- ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ 3: УДАЛЕН ПЕРЕНОС СТРОКИ ---
+
+            // --- ДОБАВЛЕНО: Заменяем открывающий тег <w:document ...> на наш сохраненный ---
+            if (originalDocumentOpeningTag && targetFile === 'word/document.xml') {
+                const currentDocumentOpeningTagRegex = /<w:document[^>]*>/;
+                currentContent = currentContent.replace(currentDocumentOpeningTagRegex, originalDocumentOpeningTag);
+            }
+            // --------------------------------------------------------------------------
+
             if (!currentContent.startsWith('<?xml')) {
                 currentContent = XML_DECLARATION + currentContent;
             }
-            // --------------------------------------------------------
-            
+
             zip.updateFile(targetFile, Buffer.from(currentContent, 'utf-8'));
         }
 
@@ -139,5 +151,6 @@ export async function processDocxFile(
         report.error = errorMessage;
         report.success = false;
     }
+
     return report;
 }
