@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
+import * as os from 'os';
 
 import { applyStyles } from './steps/applyStyles';
 import { setPageMargins } from './steps/setPageMargins';
@@ -71,8 +72,14 @@ export async function processDocxFile(
         logMessages: [`--- Обрабатываю файл: ${originalFileName} ---`]
     };
 
+    let tempDir: string | undefined;
+
     try {
         const zip = new AdmZip(filePath);
+        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'docx-opt-'));
+        zip.extractAllTo(tempDir, true);
+        report.logMessages.push(`  Временная папка создана: ${tempDir}`);
+        
         const stepsByFile: { [key: string]: ProcessingStep[] } = {};
         for (const step of enabledSteps) {
             if (!stepsByFile[step.targetFile]) {
@@ -81,23 +88,27 @@ export async function processDocxFile(
             stepsByFile[step.targetFile].push(step);
         }
 
-        for (const targetFile in stepsByFile) {
-            let hasBom = false;
-            const entry = zip.getEntry(targetFile);
-            if (!entry) {
-                report.logMessages.push(`  Предупреждение: Целевой файл "${targetFile}" не найден в архиве.`);
+        for (const targetFileRelativePath in stepsByFile) {
+            const fullTargetPath = path.join(tempDir, targetFileRelativePath);
+
+            if (!fs.existsSync(fullTargetPath)) {
+                report.logMessages.push(`  Предупреждение: Целевой файл "${targetFileRelativePath}" не найден во временной папке.`);
                 continue;
             }
-            let currentContent = entry.getData().toString('utf-8');
-            
-            // --- ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ 1: Убираем BOM в самом начале ---
+            let currentContent = fs.readFileSync(fullTargetPath, 'utf-8');
+            let hasBom = false;
+
+            // --- ИСПРАВЛЕНИЕ: Удаляем BOM и XML-декларацию ОДИН РАЗ, в самом начале ---
             if (currentContent.charCodeAt(0) === 0xFEFF) {
-                hasBom = true; // Запоминаем, что BOM был
+                hasBom = true;
                 currentContent = currentContent.substring(1);
             }
-            // -------------------------------------------------------------
+            currentContent = currentContent.replace(/<\?xml[^>]*\?>\s*/, '');
+            // --------------------------------------------------------------------------
 
-            for (const step of stepsByFile[targetFile]) {
+            // currentContent теперь всегда чистый, без BOM и <?xml...>
+
+            for (const step of stepsByFile[targetFileRelativePath]) {
                 const processFunction = functionMap[step.id];
                 if (!processFunction) {
                     report.logMessages.push(`  Предупреждение: Функция для шага "${step.id}" не найдена.`);
@@ -106,9 +117,6 @@ export async function processDocxFile(
                 
                 const result = processFunction(currentContent, step.params);
                 
-                // Если шаг сообщил об изменениях, но XML остался прежним - это ошибка
-                // Если шаг сообщил об 0 изменениях, но XML изменился - это ошибка
-                // В обоих случаях доверяем счетчику changes
                 if (result.changes === 0 && result.xml !== currentContent) {
                      report.logMessages.push(`  ПРЕДУПРЕЖДЕНИЕ: Шаг "${step.name}" сообщил об 0 изменениях, но изменил XML. Откат шага.`);
                 } else if (result.changes > 0 && result.xml === currentContent) {
@@ -126,24 +134,27 @@ export async function processDocxFile(
                 report.logMessages.push(stepReportMessage);
             }
             
-            // --- ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ 2: Возвращаем XML-декларацию и BOM перед записью ---
-            // Убеждаемся, что XML начинается с декларации
-            if (!currentContent.startsWith('<?xml')) {
-                currentContent = XML_DECLARATION + currentContent;
+            // --- ДОБАВЛЯЕМ XML-декларацию и BOM обратно ПЕРЕД ЗАПИСЬЮ ---
+            let finalOutputContent = currentContent;
+            if (targetFileRelativePath.endsWith('.xml')) {
+                finalOutputContent = XML_DECLARATION + finalOutputContent;
+                if (hasBom) {
+                    finalOutputContent = BOM + finalOutputContent;
+                }
             }
-            // Возвращаем BOM, если он был в исходном файле
-            if (hasBom) {
-                currentContent = BOM + currentContent;
-            }
-            // --------------------------------------------------------------------
+            // -------------------------------------------------------------
             
-            zip.updateFile(targetFile, Buffer.from(currentContent, 'utf-8'));
+            fs.writeFileSync(fullTargetPath, finalOutputContent, 'utf-8');
         }
 
         const originalDirectory = path.dirname(filePath);
         const newFileName = `cleared_${originalFileName}`;
         const outPath = path.join(originalDirectory, newFileName);
-        zip.writeZip(outPath);
+        
+        const newZip = new AdmZip();
+        newZip.addLocalFolder(tempDir);
+        newZip.writeZip(outPath);
+
         report.logMessages.push(`  Успешно сохранено в: ${outPath}`);
         report.success = true;
 
@@ -152,6 +163,11 @@ export async function processDocxFile(
         report.logMessages.push(`  КРИТИЧЕСКАЯ ОШИБКА: ${errorMessage}`);
         report.error = errorMessage;
         report.success = false;
+    } finally {
+        if (tempDir && fs.existsSync(tempDir)) {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+            report.logMessages.push(`  Временная папка удалена: ${tempDir}`);
+        }
     }
     return report;
 }
