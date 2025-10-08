@@ -17,9 +17,17 @@ describe('replaceSpaceWithNbspAfterNumbering', () => {
     expect(changes).toBe(1);
   });
 
-  it('should process numbering even if preserve is already present', () => {
-    const xml = `<w:t xml:space="preserve"> 1. Text </w:t>`;
-    const expectedXml = `<w:t xml:space="preserve"> 1.\u00A0Text </w:t>`;
+  it('should add xml:space="preserve" for trailing spaces', () => {
+    const xml = `<w:t>Text with trailing space </w:t>`;
+    const expectedXml = `<w:t xml:space="preserve">Text with trailing space </w:t>`;
+    const { xml: resultXml, changes } = replaceSpaceWithNbspAfterNumbering(xml, {});
+    expect(resultXml).toBe(expectedXml);
+    expect(changes).toBe(1);
+  });
+  
+  it('should handle both numbering and preserve in one go', () => {
+    const xml = `<w:t>1.2. Item with space </w:t>`;
+    const expectedXml = `<w:t xml:space="preserve">1.2.\u00A0Item with space </w:t>`;
     const { xml: resultXml, changes } = replaceSpaceWithNbspAfterNumbering(xml, {});
     expect(resultXml).toBe(expectedXml);
     expect(changes).toBe(1);
@@ -30,6 +38,14 @@ describe('replaceSpaceWithNbspAfterNumbering', () => {
     const { xml: resultXml, changes } = replaceSpaceWithNbspAfterNumbering(xml, {});
     expect(resultXml).toBe(xml);
     expect(changes).toBe(0);
+  });
+
+  it('should process numbering even if preserve is already present', () => {
+    const xml = `<w:t xml:space="preserve"> 1. Text </w:t>`;
+    const expectedXml = `<w:t xml:space="preserve"> 1.\u00A0Text </w:t>`;
+    const { xml: resultXml, changes } = replaceSpaceWithNbspAfterNumbering(xml, {});
+    expect(resultXml).toBe(expectedXml);
+    expect(changes).toBe(1);
   });
 
   it('should handle empty input', () => {

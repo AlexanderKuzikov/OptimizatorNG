@@ -45,8 +45,7 @@ export function replaceSpaceWithNbspAfterNumbering(xml: string, params: any): St
   if (totalChanges > 0) {
     const serializer = new dom.window.XMLSerializer();
     let serializedXml = serializer.serializeToString(doc.documentElement);
-    // ИСПРАВЛЕНИЕ: УБРАН \n
-    serializedXml = serializedXml.replace(/<\/w:p><w:p>/g, '</w:p><w:p>');
+    serializedXml = serializedXml.replace(/<\/w:p><w:p>/g, '</w:p>\n<w:p>');
 
     const startTag = `<${dummyTag} xmlns:w="${namespace}">`;
     const endTag = `</${dummyTag}>`;

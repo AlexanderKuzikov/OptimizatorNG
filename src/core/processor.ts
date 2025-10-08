@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
 
+// ... все импорты остаются теми же
 import { applyStyles } from './steps/applyStyles';
 import { setPageMargins } from './steps/setPageMargins';
 import { removeStyles } from './steps/removeStyles';
@@ -58,7 +59,6 @@ const functionMap: { [key: string]: (xml: string, params: any) => StepResult } =
 };
 
 const XML_DECLARATION = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-const BOM = '\uFEFF';
 
 export async function processDocxFile(
     filePath: string,
@@ -82,7 +82,6 @@ export async function processDocxFile(
         }
 
         for (const targetFile in stepsByFile) {
-            let hasBom = false;
             const entry = zip.getEntry(targetFile);
             if (!entry) {
                 report.logMessages.push(`  Предупреждение: Целевой файл "${targetFile}" не найден в архиве.`);
@@ -90,12 +89,9 @@ export async function processDocxFile(
             }
             let currentContent = entry.getData().toString('utf-8');
             
-            // --- ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ 1: Убираем BOM в самом начале ---
             if (currentContent.charCodeAt(0) === 0xFEFF) {
-                hasBom = true; // Запоминаем, что BOM был
                 currentContent = currentContent.substring(1);
             }
-            // -------------------------------------------------------------
 
             for (const step of stepsByFile[targetFile]) {
                 const processFunction = functionMap[step.id];
@@ -106,13 +102,8 @@ export async function processDocxFile(
                 
                 const result = processFunction(currentContent, step.params);
                 
-                // Если шаг сообщил об изменениях, но XML остался прежним - это ошибка
-                // Если шаг сообщил об 0 изменениях, но XML изменился - это ошибка
-                // В обоих случаях доверяем счетчику changes
                 if (result.changes === 0 && result.xml !== currentContent) {
                      report.logMessages.push(`  ПРЕДУПРЕЖДЕНИЕ: Шаг "${step.name}" сообщил об 0 изменениях, но изменил XML. Откат шага.`);
-                } else if (result.changes > 0 && result.xml === currentContent) {
-                     report.logMessages.push(`  ПРЕДУПРЕЖДЕНИЕ: Шаг "${step.name}" сообщил об ${result.changes} изменениях, но XML остался прежним. Откат шага.`);
                 } else {
                     currentContent = result.xml;
                 }
@@ -126,16 +117,11 @@ export async function processDocxFile(
                 report.logMessages.push(stepReportMessage);
             }
             
-            // --- ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ 2: Возвращаем XML-декларацию и BOM перед записью ---
-            // Убеждаемся, что XML начинается с декларации
+            // --- ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ 3: УДАЛЕН ПЕРЕНОС СТРОКИ ---
             if (!currentContent.startsWith('<?xml')) {
                 currentContent = XML_DECLARATION + currentContent;
             }
-            // Возвращаем BOM, если он был в исходном файле
-            if (hasBom) {
-                currentContent = BOM + currentContent;
-            }
-            // --------------------------------------------------------------------
+            // --------------------------------------------------------
             
             zip.updateFile(targetFile, Buffer.from(currentContent, 'utf-8'));
         }
