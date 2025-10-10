@@ -9,7 +9,7 @@
     "build": "npm run build:main && npm run build:renderer",
     "start": "npm run build && electron .",
     "test": "jest",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder --windows"
   },
   "keywords": [],
   "author": "",
@@ -43,10 +43,7 @@
     "productName": "Optimizator Next Gen",
     "files": [
       "dist/**/*",
-      "index.html",
-      "src/templates/*.xml",
-      "config.json",
-      "node_modules/**/*"
+      "index.html"
     ],
     "directories": {
       "output": "release"
@@ -61,8 +58,15 @@
     "extraResources": [
         {
             "from": "config.json",
-            "to": "config.json"
+            "to": "."
+        },
+        {
+            "from": "src/templates",
+            "to": "templates"
         }
-    ]
+    ],
+    "mac": null,
+    "linux": null,
+    "publish": null
   }
 }

@@ -1,121 +1,208 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru"> <!-- Добавил атрибут lang для указания языка документа -->
   <head>
     <meta charset="UTF-8" />
-    <title>Optimizator Next Gen (Developer)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <!-- Добавил мета-тег для адаптивности -->
+    <title>Optimizator Next Gen</title> <!-- Убрал "(Developer)", так как это скорее для dev-сборки, а не для финального названия -->
     <style>
-        /* Сброс базовых стилей и установка box-sizing */
-        html, body { 
-            margin: 0; /* Убираем стандартные отступы браузера */
-            padding: 1em; /* Оставляем внешний отступ */
-            height: 100%; /* Убедимся, что body занимает всю высоту */
-            box-sizing: border-box; /* Важно для корректного расчета размеров */
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background-color: #282c34; 
-            color: #abb2bf; 
-        }
-        *, *::before, *::after {
-            box-sizing: inherit; /* Наследуем box-sizing для всех элементов */
-        }
-        /* Стили для двухколоночного макета */
-        .main-grid-container {
-            display: flex;
-            gap: 20px; /* Промежуток между колонками */
-            height: calc(100vh - 2em); /* Высота контейнера за вычетом padding body */
-        }
-        .left-panel, .right-panel {
-            flex: 1; /* Занимает 50% доступного пространства */
-            display: flex;
-            flex-direction: column;
-            gap: 15px; /* Промежуток между элементами внутри колонки */
-            padding: 1em;
-            background-color: #21252b;
-            border-radius: 8px;
-            border: 1px solid #3e4451;
-            min-width: 0; /* ЭТО КЛЮЧЕВОЕ ИЗМЕНЕНИЕ ДЛЯ FLEXBOX! */
-        }
-        /* Общие стили для элементов */
-        button { 
-            font-size: 16px; 
-            padding: 12px 20px; 
-            background-color: #61afef; 
-            color: #282c34; 
-            border: none; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            transition: background-color 0.2s; 
-            width: 100%; 
-        }
-        button:hover { background-color: #98c379; }
-        #status-log { 
-            font-family: "Courier New", Courier, monospace; 
-            background-color: #1e1e1e; 
-            border: 1px solid #3e4451; 
-            padding: 1em; 
-            border-radius: 8px; 
-            min-height: 150px; 
-            white-space: pre-wrap; 
-            overflow-y: auto; 
-            flex-grow: 1; 
-            margin-top: auto; 
-            font-size: 0.85em; /* Уменьшаем размер шрифта */
-        }
-        /* Стили для списка шагов */
-        #steps-heading { 
-            font-size: 1.2em; 
-            color: #61afef; 
-            margin-top: 0; 
-            margin-bottom: 15px; 
-            border-bottom: 1px solid #3e4451; 
-            padding-bottom: 0.5em;
-        }
-        .step-group { 
-            margin-bottom: 1em; 
-            border: none; 
-            padding: 0; 
-            border-radius: 0; 
-        }
-        .step-group h2 { 
-            margin-top: 0; 
-            color: #98c379; 
-            border-bottom: 1px solid #3e4451; 
-            padding-bottom: 0.2em;
-            font-size: 1em; 
-            margin-bottom: 0.5em;
-        }
-        label { 
-            display: flex; 
-            align-items: center; 
-            margin-bottom: 0.5em; 
-            cursor: pointer; 
-        }
-        
-        /* --- НОВОЕ ПРАВИЛО ДЛЯ УМЕНЬШЕНИЯ ШРИФТА И ИНТЕРВАЛОВ В СПИСКЕ ШАГОВ --- */
-        #processing-steps label {
-            font-size: 0.9em;      /* Немного уменьшаем шрифт */
-            line-height: 1.1;     /* Уменьшаем межстрочное расстояние */
-            margin-bottom: 0.3em; /* Сближаем строки */
+        /*
+         *  ОБЩИЕ СБРОСЫ И БАЗОВЫЕ СТИЛИ
+         */
+        :root { /* Использование CSS-переменных для легкости изменения тем и значений */
+            --primary-bg-color: #282c34;
+            --secondary-bg-color: #21252b;
+            --border-color: #3e4451;
+            --text-color: #abb2bf;
+            --highlight-color-1: #61afef; /* Синий */
+            --highlight-color-2: #98c379; /* Зеленый */
+            --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-family-mono: "Courier New", Courier, monospace;
+            --spacing-unit: 1em; /* Базовая единица отступа */
+            --gap-size: 20px; /* Промежуток между колонками */
+            --button-padding-y: 12px;
+            --button-padding-x: 20px;
         }
 
-        input[type="checkbox"] { margin-right: 10px; }
-        #processing-steps { 
-            flex-grow: 1; 
-            overflow-y: auto; 
+        html, body {
+            margin: 0;
+            padding: var(--spacing-unit); /* Используем переменную */
+            height: 100%;
+            box-sizing: border-box;
+            font-family: var(--font-family-sans);
+            background-color: var(--primary-bg-color);
+            color: var(--text-color);
+            line-height: 1.5; /* Улучшает читаемость текста */
+        }
+        *, *::before, *::after {
+            box-sizing: inherit;
+        }
+
+        /*
+         *  МАКЕТ ДВУХ КОЛОНОК
+         */
+        .main-grid-container {
+            display: flex;
+            gap: var(--gap-size);
+            height: calc(100vh - (2 * var(--spacing-unit))); /* 100vh минус двойной padding body */
+            max-height: calc(100vh - (2 * var(--spacing-unit))); /* Ограничение максимальной высоты */
+        }
+
+        .left-panel, .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: calc(var(--spacing-unit) * 1.5); /* 1.5em */
+            padding: var(--spacing-unit);
+            background-color: var(--secondary-bg-color);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            min-width: 0; /* Важно для flexbox, предотвращает переполнение при длинном содержимом */
+            overflow: hidden; /* Скрывает контент, который выходит за границы, если flex-shrink не справляется */
+        }
+        .right-panel { /* Правая панель с прокруткой для списка шагов */
+            justify-content: space-between; /* Распределяет пространство между элементами */
+        }
+
+        /*
+         *  ОБЩИЕ СТИЛИ ЭЛЕМЕНТОВ
+         */
+        button {
+            font-size: 16px;
+            padding: var(--button-padding-y) var(--button-padding-x);
+            background-color: var(--highlight-color-1);
+            color: var(--primary-bg-color); /* Контрастный цвет текста */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out; /* Добавил ease-in-out для плавности */
+            width: 100%;
+            white-space: nowrap; /* Предотвращает перенос текста кнопки */
+        }
+        button:hover {
+            background-color: var(--highlight-color-2);
+            color: var(--primary-bg-color); /* Сохраняем контрастность */
+        }
+        button:focus { /* Добавил стили для фокуса для доступности */
+            outline: 2px solid var(--highlight-color-1);
+            outline-offset: 2px;
+        }
+
+
+        /*
+         *  СТИЛИ ЛОГА СТАТУСА
+         */
+        #status-log {
+            font-family: var(--font-family-mono);
+            background-color: #1e1e1e; /* Специальный фон для лога */
+            border: 1px solid var(--border-color);
+            padding: var(--spacing-unit);
+            border-radius: 8px;
+            min-height: 150px;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            flex-grow: 1;
+            /* margin-top: auto; - Удалено, так как gap в flex-direction: column управляет этим */
+            font-size: 0.85em;
+            word-break: break-word; /* Добавил для предотвращения горизонтальной прокрутки при очень длинных словах */
+        }
+
+        /*
+         *  СТИЛИ СПИСКА ШАГОВ
+         */
+        #steps-heading {
+            font-size: 1.2em;
+            color: var(--highlight-color-1);
+            margin-top: 0;
+            margin-bottom: var(--spacing-unit); /* Используем переменную */
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5em;
+        }
+
+        .step-group {
+            margin-bottom: var(--spacing-unit);
+            border: none;
+            padding: 0;
+            border-radius: 0;
+            /* Может быть, стоит добавить display: flex; flex-direction: column; здесь, если это group of steps */
+        }
+
+        .step-group h2 { /* Это должно быть для Fieldset Legend, а не для h2, если .step-group это fieldset */
+            margin-top: 0;
+            color: var(--highlight-color-2);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.2em;
+            font-size: 1em;
+            margin-bottom: 0.5em;
+        }
+
+        /*
+         *  СТИЛИ ДЛЯ ЭЛЕМЕНТОВ ФОРМЫ (CHECKBOXES)
+         */
+        label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5em;
+            cursor: pointer;
+            user-select: none; /* Предотвращает выделение текста при клике */
+        }
+
+        #processing-steps label {
+            font-size: 0.9em;
+            line-height: 1.3;     /* Немного увеличил для лучшей читаемости */
+            margin-bottom: 0.5em; /* Вернул чуть больший отступ для читаемости */
+        }
+
+        input[type="checkbox"] {
+            margin-right: 10px;
+            /* Дополнительные стили для кастомизации чекбокса, если нужно */
+        }
+
+        #processing-steps {
+            flex-grow: 1;
+            overflow-y: auto; /* Важно для прокрутки списка шагов */
+            padding-right: 5px; /* Для визуального отступа от скроллбара */
+        }
+
+        /* Стили для скроллбаров (опционально, для кастомизации) */
+        #status-log::-webkit-scrollbar,
+        #processing-steps::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #status-log::-webkit-scrollbar-track,
+        #processing-steps::-webkit-scrollbar-track {
+            background: var(--secondary-bg-color);
+            border-radius: 10px;
+        }
+
+        #status-log::-webkit-scrollbar-thumb,
+        #processing-steps::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+
+        #status-log::-webkit-scrollbar-thumb:hover,
+        #processing-steps::-webkit-scrollbar-thumb:hover {
+            background: var(--highlight-color-1);
         }
     </style>
   </head>
   <body>
     <div class="main-grid-container">
-        <div class="left-panel">
-            <button id="select-files-button">Выбрать файлы</button>
-            <button id="start-processing-button">Запустить обработку</button>
-            <div id="status-log">Ожидание запуска...</div>
-        </div>
-        <div class="right-panel">
+        <aside class="left-panel"> <!-- Использование <aside> для сайдбара, семантично -->
+            <h1>Управление обработкой</h1> <!-- Семантически лучше, чем просто кнопки -->
+            <button id="select-files-button" type="button">Выбрать файлы</button>
+            <button id="start-processing-button" type="button">Запустить обработку</button>
+            <section id="status-log" aria-live="polite">Ожидание запуска...</section> <!-- <section> и aria-live для доступности -->
+        </aside>
+        <main class="right-panel"> <!-- Использование <main> для основного контента -->
             <h2 id="steps-heading">Список шагов обработки</h2>
-            <div id="processing-steps">Загрузка...</div>
-        </div>
+            <form id="processing-steps" aria-labelledby="steps-heading"> <!-- <form> для группы элементов управления -->
+                <!-- Шаги будут динамически загружаться сюда JS -->
+                Загрузка...
+            </form>
+        </main>
     </div>
-    <script src="./dist/renderer.js"></script>
+    <script src="./renderer.js" defer></script> <!-- defer для оптимизации загрузки -->
   </body>
 </html>
