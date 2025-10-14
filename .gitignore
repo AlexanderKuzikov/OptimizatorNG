@@ -29,4 +29,5 @@ out/
 # Временные файлы и кэш
 .cache/
 *.swp
-*.zip
+/dist
+/dist
