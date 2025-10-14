@@ -1,10 +1,10 @@
 import { convertTwoColumnTablesToTabbedParagraphs } from './convertTwoColumnTablesToTabbedParagraphs';
 
 describe('convertTwoColumnTablesToTabbedParagraphs', () => {
-  // Поскольку processor.ts добавляет xmlns:w на корневой <w:document>
-  // и мы тестируем фрагменты, нам не нужно указывать xmlns:w здесь.
-  // Также не нужно указывать <?xml ...?> в expectedXml.
-  // Сравнение будет максимально простым, как в cleanupParaProps.
+  const WORD_NAMESPACE = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const normalizeXmlForComparison = (xmlString: string) => {
+    return xmlString.replace(/\s/g, '');
+  };
 
   it('должен корректно конвертировать простую двухколоночную таблицу', () => {
     const inputXml = `
@@ -31,8 +31,7 @@ describe('convertTwoColumnTablesToTabbedParagraphs', () => {
 
     const { xml: resultXml, changes } = convertTwoColumnTablesToTabbedParagraphs(inputXml, {});
     
-    // Сравниваем, удаляя все пробельные символы, как в cleanupParaProps
-    expect(resultXml.replace(/\s/g, '')).toBe(expectedXml.replace(/\s/g, ''));
+    expect(normalizeXmlForComparison(resultXml)).toBe(normalizeXmlForComparison(expectedXml));
     expect(changes).toBe(1);
   });
 
@@ -68,7 +67,7 @@ describe('convertTwoColumnTablesToTabbedParagraphs', () => {
     `;
 
     const { xml: resultXml, changes } = convertTwoColumnTablesToTabbedParagraphs(inputXml, {});
-    expect(resultXml.replace(/\s/g, '')).toBe(expectedXml.replace(/\s/g, ''));
+    expect(normalizeXmlForComparison(resultXml)).toBe(normalizeXmlForComparison(expectedXml));
     expect(changes).toBe(1);
   });
 
@@ -92,7 +91,7 @@ describe('convertTwoColumnTablesToTabbedParagraphs', () => {
     `;
 
     const { xml: resultXml, changes } = convertTwoColumnTablesToTabbedParagraphs(inputXml, {});
-    expect(resultXml.replace(/\s/g, '')).toBe(inputXml.replace(/\s/g, ''));
+    expect(normalizeXmlForComparison(resultXml)).toBe(normalizeXmlForComparison(inputXml));
     expect(changes).toBe(0);
   });
 
@@ -120,7 +119,7 @@ describe('convertTwoColumnTablesToTabbedParagraphs', () => {
     `;
 
     const { xml: resultXml, changes } = convertTwoColumnTablesToTabbedParagraphs(inputXml, {});
-    expect(resultXml.replace(/\s/g, '')).toBe(expectedXml.replace(/\s/g, ''));
+    expect(normalizeXmlForComparison(resultXml)).toBe(normalizeXmlForComparison(expectedXml));
     expect(changes).toBe(1);
   });
 
@@ -131,7 +130,7 @@ describe('convertTwoColumnTablesToTabbedParagraphs', () => {
       </w:body>
     `;
     const { xml: resultXml, changes } = convertTwoColumnTablesToTabbedParagraphs(inputXml, {});
-    expect(resultXml.replace(/\s/g, '')).toBe(inputXml.replace(/\s/g, ''));
+    expect(normalizeXmlForComparison(resultXml)).toBe(normalizeXmlForComparison(inputXml));
     expect(changes).toBe(0);
   });
 
@@ -157,7 +156,43 @@ describe('convertTwoColumnTablesToTabbedParagraphs', () => {
     `;
 
     const { xml: resultXml, changes } = convertTwoColumnTablesToTabbedParagraphs(inputXml, {});
-    expect(resultXml.replace(/\s/g, '')).toBe(expectedXml.replace(/\s/g, ''));
+    expect(normalizeXmlForComparison(resultXml)).toBe(normalizeXmlForComparison(expectedXml));
     expect(changes).toBe(2);
   });
+
+  // !!! ОТКЛЮЧЕНО: Тест на вложенные таблицы
+  // it('должен пропускать строку с вложенной таблицей и добавлять предупреждение', () => {
+  //   const inputXml = `
+  //     <w:body>
+  //       <w:tbl>
+  //         <w:tr>
+  //           <w:tc><w:p><w:r><w:t>Cell 1A</w:t></w:r></w:p></w:tc>
+  //           <w:tc>
+  //             <w:p><w:r><w:t>Cell 1B</w:t></w:r></w:p>
+  //             <w:tbl>
+  //               <w:tr><w:tc><w:p><w:r><w:t>Nested</w:t></w:r></w:p></w:tc></w:tr>
+  //             </w:tbl>
+  //           </w:tc>
+  //         </w:tr>
+  //         <w:tr>
+  //           <w:tc><w:p><w:r><w:t>Cell 2A</w:t></w:r></w:p></w:tc>
+  //           <w:tc><w:p><w:r><w:t>Cell 2B</w:t></w:r></w:p></w:tc>
+  //         </w:tr>
+  //       </w:tbl>
+  //     </w:body>
+  //   `;
+
+  //   const expectedXml = `
+  //     <w:body>
+  //       <w:p>
+  //           <w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>ПРЕДУПРЕЖДЕНИЕ: В строке таблицы обнаружена вложенная таблица. Строка будет пропущена.</w:t></w:r>
+  //       </w:p>
+  //       <w:p><w:pPr><w:pStyle w:val="Tabular1"/></w:pPr><w:r><w:tab/></w:r><w:r><w:t>Cell 2A</w:t></w:r><w:r><w:tab/></w:r><w:r><w:t>Cell 2B</w:t></w:r></w:p>
+  //     </w:body>
+  //   `;
+  //   const { xml: resultXml, changes } = convertTwoColumnTablesToTabbedParagraphs(inputXml, {});
+  //   expect(normalizeXmlForComparison(resultXml)).toBe(normalizeXmlForComparison(expectedXml));
+  //   expect(changes).toBe(1);
+  // });
+
 });
