@@ -145,6 +145,14 @@
       "targetFile": "word/document.xml",
       "enabled": true,
       "params": {}
+    },
+    { 
+      "id": "convertTwoColumnTablesToTabbedParagraphs",
+      "name": "Конвертация двухколоночных таблиц в параграфы с табуляцией",
+      "description": "Преобразует двухколоночные таблицы в обычные параграфы, где содержимое ячеек разделено табуляциями. Работает только с таблицами, имеющими ровно две колонки.",
+      "targetFile": "word/document.xml",
+      "enabled": true,
+      "params": {}
     }
   ]
 }

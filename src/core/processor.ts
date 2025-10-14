@@ -18,6 +18,7 @@ import { mergeConsecutiveRuns } from './steps/mergeConsecutiveRuns';
 import { mergeInstructionTextRuns } from './steps/mergeInstructionTextRuns';
 import { cleanupParaProps } from './steps/cleanupParaProps';
 import { replaceSpaceWithNbspAfterNumbering } from './steps/replaceSpaceWithNbspAfterNumbering';
+import { convertTwoColumnTablesToTabbedParagraphs } from './steps/convertTwoColumnTablesToTabbedParagraphs'; // НОВЫЙ ИМПОРТ
 
 interface StepResult { xml: string; changes: number; }
 
@@ -53,7 +54,8 @@ const functionMap: { [key: string]: (xml: string, params: any) => StepResult } =
     mergeConsecutiveRuns,
     mergeInstructionTextRuns,
     cleanupParaProps,
-    replaceSpaceWithNbspAfterNumbering
+    replaceSpaceWithNbspAfterNumbering,
+    convertTwoColumnTablesToTabbedParagraphs // НОВАЯ ФУНКЦИЯ ДОБАВЛЕНА
 };
 
 const XML_DECLARATION = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
@@ -83,7 +85,7 @@ export async function processDocxFile(
 
         for (const targetFile in stepsByFile) {
             let hasBom = false;
-            let hasXmlDeclaration = false; // Добавлено для отслеживания наличия XML-декларации
+            let hasXmlDeclaration = false;
 
             const entry = zip.getEntry(targetFile);
             if (!entry) {
@@ -92,24 +94,21 @@ export async function processDocxFile(
             }
             let currentContent = entry.getData().toString('utf-8');
 
-            // --- ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ 1: Убираем BOM в самом начале ---
+            // --- Убираем BOM в самом начале ---
             if (currentContent.charCodeAt(0) === 0xFEFF) {
-                hasBom = true; // Запоминаем, что BOM был
+                hasBom = true;
                 currentContent = currentContent.substring(1);
             }
-            // -------------------------------------------------------------
 
-            // --- Добавлен костыль: сохраняем оригинальный открывающий тег <w:document ...> ---
+            // --- Сохраняем оригинальный открывающий тег <w:document ...> и наличие XML-декларации ---
             let originalDocumentOpeningTag = '';
-            // Проверяем наличие XML-декларации
             if (currentContent.startsWith('<?xml')) {
                 hasXmlDeclaration = true;
             }
 
             const documentOpeningTagMatch = currentContent.match(/^(<\?xml[^>]*\?>\s*)?(<w:document[^>]*>)/);
             if (documentOpeningTagMatch && targetFile === 'word/document.xml') {
-                // Если XML-декларация присутствует, она будет в group 1 (если есть), сам тег <w:document> в group 2
-                originalDocumentOpeningTag = documentOpeningTagMatch[2]; // Группа 2 захватывает <w:document...>
+                originalDocumentOpeningTag = documentOpeningTagMatch[2];
             }
             // --------------------------------------------------------------------------
 
@@ -123,9 +122,6 @@ export async function processDocxFile(
 
                 const result = processFunction(currentContent, step.params);
 
-                // Если шаг сообщил об изменениях, но XML остался прежним - это ошибка
-                // Если шаг сообщил об 0 изменениях, но XML изменился - это ошибка
-                // В обоих случаях доверяем счетчику changes
                 if (result.changes === 0 && result.xml !== currentContent) {
                      report.logMessages.push(`  ПРЕДУПРЕЖДЕНИЕ: Шаг "${step.name}" сообщил об 0 изменениях, но изменил XML. Откат шага.`);
                 } else if (result.changes > 0 && result.xml === currentContent) {
@@ -143,25 +139,23 @@ export async function processDocxFile(
                 report.logMessages.push(stepReportMessage);
             }
 
-            // --- ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ 2: Восстанавливаем XML-декларацию и BOM перед записью ---
-            // --- Добавлен костыль: Заменяем открывающий тег <w:document ...> на наш сохраненный ---
+            // --- Восстанавливаем XML-декларацию и BOM перед записью, а также тег <w:document ...> ---
+
+            // Если это word/document.xml и у нас есть сохраненный тег, восстанавливаем его
             if (targetFile === 'word/document.xml' && originalDocumentOpeningTag) {
-                // Ищем текущий открывающий тег <w:document ...> в обработанном контенте
                 const currentDocumentOpeningTagRegex = /<w:document[^>]*>/;
-                // Заменяем его на сохраненный, чтобы восстановить все xmlns: атрибуты
                 currentContent = currentContent.replace(currentDocumentOpeningTagRegex, originalDocumentOpeningTag);
             }
             
-            // Убеждаемся, что XML начинается с декларации, если она была или требуется по умолчанию
+            // Восстанавливаем XML-декларацию, если она была или требуется
             if (hasXmlDeclaration && !currentContent.startsWith('<?xml')) {
                 currentContent = XML_DECLARATION + currentContent;
             } else if (!hasXmlDeclaration && !currentContent.startsWith('<?xml') && targetFile.endsWith('.xml')) {
-                // Если декларации не было, но файл XML, добавляем дефолтную
                 currentContent = XML_DECLARATION + currentContent;
             }
 
-            // Возвращаем BOM, если он был в исходном файле
-            if (hasBom && !currentContent.startsWith(BOM)) { // Проверяем, что BOM еще не добавлен
+            // Восстанавливаем BOM, если он был в исходном файле
+            if (hasBom && !currentContent.startsWith(BOM)) {
                 currentContent = BOM + currentContent;
             }
             // --------------------------------------------------------------------
