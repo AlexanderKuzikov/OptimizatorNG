@@ -51,3 +51,4 @@ out/
 
 # Временные файлы Jest
 .jest_cache/
+/dist/core
