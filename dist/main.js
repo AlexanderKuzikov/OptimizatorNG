@@ -38,11 +38,10 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const processor_1 = require("./core/processor");
 function readConfig() {
-    // В упакованном приложении config.json будет доступен через process.resourcesPath
-    const configPath = path.join(process.resourcesPath, 'config.json');
+    const basePath = path.join(__dirname, '..');
+    const configPath = path.join(basePath, 'config.json');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    // Шаблоны также будут доступны через process.resourcesPath
-    const templatesDir = path.join(process.resourcesPath, 'templates');
+    const templatesDir = path.join(basePath, 'src', 'templates');
     const applyStylesStep = config.processingSteps.find(step => step.id === 'applyStyles');
     if (applyStylesStep && applyStylesStep.params && applyStylesStep.params.templateFileName) {
         const templatePath = path.join(templatesDir, applyStylesStep.params.templateFileName);
@@ -59,7 +58,6 @@ function createWindow() {
         resizable: false,
         maximizable: false,
         webPreferences: {
-            // preload.js будет рядом с main.js в папке dist
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false
@@ -165,4 +163,3 @@ electron_1.app.on('activate', () => {
         createWindow();
     }
 });
-//# sourceMappingURL=main.js.map

@@ -1,20 +1,17 @@
-// tsconfig.json
 {
   "compilerOptions": {
-    "target": "es2020",
-    "module": "CommonJS",
-    "lib": [
-      "ES2020",
-      "DOM"
-    ],
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "target": "es2021",
+    "module": "commonjs",
+    "outDir": "./dist",
     "strict": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    "sourceMap": true,
-    "declaration": false,
-    "moduleResolution": "node"
-  }
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "lib": ["es2021", "dom"]
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
 }

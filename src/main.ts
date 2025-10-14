@@ -4,7 +4,6 @@ import * as path from 'path';
 import { processDocxFile, ProcessorReport } from './core/processor';
 
 // --- ИНТЕРФЕЙСЫ ---
-
 export interface ProcessingStep {
     id: string;
     name: string;
@@ -19,18 +18,18 @@ export interface Config {
 }
 
 function readConfig(): Config {
-    // В упакованном приложении config.json будет доступен через process.resourcesPath
-    const configPath = path.join(process.resourcesPath, 'config.json');
+    const basePath = path.join(__dirname, '..');
+    const configPath = path.join(basePath, 'config.json');
     const config: Config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-
-    // Шаблоны также будут доступны через process.resourcesPath
-    const templatesDir = path.join(process.resourcesPath, 'templates');
+    
+    const templatesDir = path.join(basePath, 'src', 'templates');
+    
     const applyStylesStep = config.processingSteps.find(step => step.id === 'applyStyles');
-
     if (applyStylesStep && applyStylesStep.params && applyStylesStep.params.templateFileName) {
         const templatePath = path.join(templatesDir, applyStylesStep.params.templateFileName);
         applyStylesStep.params.templateContent = fs.readFileSync(templatePath, 'utf-8');
     }
+
     return config;
 }
 
@@ -44,13 +43,11 @@ function createWindow() {
         resizable: false,
         maximizable: false,
         webPreferences: {
-            // preload.js будет рядом с main.js в папке dist
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false
         }
     });
-
     mainWindow.setMenu(null);
     mainWindow.loadFile('index.html');
 }
@@ -72,7 +69,6 @@ function askToRetry(window: BrowserWindow, fileName: string): Promise<void> {
 }
 
 // === IPC ОБРАБОТЧИКИ ===
-
 ipcMain.handle('get-config', (): Config => {
     return readConfig();
 });
@@ -83,7 +79,6 @@ ipcMain.handle('select-files', async (): Promise<void> => {
         properties: ['openFile', 'multiSelections'],
         filters: [{ name: 'Word Documents', extensions: ['docx'] }]
     });
-
     if (filePaths && filePaths.length > 0) {
         selectedFilePaths = filePaths;
         mainWindow.webContents.send('update-status', `Выбрано файлов: ${filePaths.length}`);
@@ -116,7 +111,6 @@ ipcMain.handle('start-processing', async (event, enabledStepIds: string[]): Prom
             try {
                 report = await processDocxFile(filePath, stepsToRun);
                 report.logMessages.forEach(msg => mainWindow?.webContents.send('update-status', msg));
-
                 if (!report.success && report.error && report.error.includes('EBUSY')) {
                     if (retryCount < MAX_RETRIES) {
                         retryCount++;
@@ -147,7 +141,6 @@ ipcMain.handle('start-processing', async (event, enabledStepIds: string[]): Prom
 });
 
 // === ЖИЗНЕННЫЙ ЦИКЛ ПРИЛОЖЕНИЯ ===
-
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
