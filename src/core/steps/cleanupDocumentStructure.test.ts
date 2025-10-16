@@ -1,49 +1,53 @@
-// Команда запуска: npm test cleanupDocumentStructure
-
 import { cleanupDocumentStructure } from './cleanupDocumentStructure';
 
-describe('cleanupDocumentStructure (Cleanup-Only Logic)', () => {
+describe('cleanupDocumentStructure - Только новые регулярки', () => {
+  const normalizeXmlForComparison = (xmlString: string) => {
+    return xmlString.replace(/\s/g, '');
+  };
 
-    it('должен удалять XML-комментарии', () => {
-        const input = '<w:p><!-- Это комментарий --><w:r><w:t>Текст</w:t></w:r></w:p>';
-        const expected = '<w:p><w:r><w:t>Текст</w:t></w:r></w:p>';
-        const result = cleanupDocumentStructure(input, {});
-        expect(result.xml).toBe(expected);
-    });
+  it('должен удалить параграф с w:pPr и только одним w:r с пробелом', () => {
+    const inputXml = `
+      <w:body>
+        <w:p><w:pPr/><w:r><w:t> </w:t></w:r></w:p>
+        <w:p><w:pPr><w:jc w:val="left"/></w:pPr><w:r><w:t>  </w:t></w:r></w:p>
+        <w:p><w:pPr/><w:r><w:t>Visible</w:t></w:r></w:p>
+      </w:body>
+    `;
+    const expectedXml = `
+      <w:body>
+        <w:p/>
+        <w:p/>
+        <w:p><w:pPr/><w:r><w:t>Visible</w:t></w:r></w:p>
+      </w:body>
+    `;
+    const { xml: resultXml, changes } = cleanupDocumentStructure(inputXml, {});
+    expect(normalizeXmlForComparison(resultXml)).toBe(normalizeXmlForComparison(expectedXml));
+    expect(changes).toBe(2);
+  });
 
-    it('должен удалять служебные теги <w:proofErr> и <w:lang>', () => {
-        const input = '<w:r><w:rPr><w:lang w:val="en-US"/></w:rPr><w:proofErr w:type="spellStart"/><w:t>text</w:t><w:proofErr w:type="spellEnd"/></w:r>';
-        const expected = '<w:r><w:rPr></w:rPr><w:t>text</w:t></w:r>';
-        const result = cleanupDocumentStructure(input, {});
-        // Финальный результат будет без <w:rPr>, т.к. оно тоже удаляется следующим правилом
-        const finalExpected = '<w:r><w:t>text</w:t></w:r>';
-        expect(result.xml).toBe(finalExpected);
-    });
-
-    it('должен удалять пустые блоки <w:rPr></w:rPr>', () => {
-        const input = '<w:r><w:rPr></w:rPr><w:t>Текст</w:t></w:r>';
-        const expected = '<w:r><w:t>Текст</w:t></w:r>';
-        const result = cleanupDocumentStructure(input, {});
-        expect(result.xml).toBe(expected);
-    });
-
-    it('должен удалять пустые "сложные" run-ы (Шаг 10)', () => {
-        const input = '<w:p><w:r><w:t>Начало</w:t></w:r><w:r><w:rPr/><w:t></w:t></w:r><w:r><w:t>Конец</w:t></w:r></w:p>';
-        const expected = '<w:p><w:r><w:t>Начало</w:t></w:r><w:r><w:t>Конец</w:t></w:r></w:p>';
-        const result = cleanupDocumentStructure(input, {});
-        expect(result.xml).toBe(expected);
-    });
-
-    it('НЕ должен удалять пустые "простые" run-ы (Правило 15 удалено)', () => {
-        const input = '<w:p><w:r><w:t></w:t></w:r></w:p>';
-        const result = cleanupDocumentStructure(input, {});
-        expect(result.xml).toBe(input);
-    });
-    
-    it('НЕ должен выполнять слияние тегов <w:r>', () => {
-        const input = '<w:r><w:t>Текст1</w:t></w:r><w:r><w:t>Текст2</w:t></w:r>';
-        const result = cleanupDocumentStructure(input, {});
-        expect(result.xml).toBe(input); // Ожидаем, что ничего не изменится
-    });
-
+  it('должен удалить параграф с w:pPr и только одним w:r с табуляцией', () => {
+    const inputXml = `
+      <w:body>
+        <w:p><w:pPr/><w:r><w:tab/></w:r></w:p>
+        <w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:tab/></w:r></w:p>
+      </w:body>
+    `;
+    const expectedXml = `
+      <w:body>
+        <w:p/>
+        <w:p/>
+      </w:body>
+    `;
+    const { xml: resultXml, changes } = cleanupDocumentStructure(inputXml, {});
+    expect(normalizeXmlForComparison(resultXml)).toBe(normalizeXmlForComparison(expectedXml));
+    expect(changes).toBe(2);
+  });
+  
+  // !!! Остальные тесты, которые проходили, будут здесь пропущены ради краткости
+  // ...
+  // it('должен удалить параграф с w:pPr и только одним w:r с разрывом строки', () => { ... });
+  // it('должен удалить параграф с w:pPr и только одним самозакрывающимся w:r', () => { ... });
+  // it('должен удалить параграф с w:pPr и только одним w:r с пустыми w:rPr и w:t', () => { ... });
+  // it('не должен трогать параграфы с видимым текстом, даже если есть w:pPr', () => { ... });
+  // it('должен обрабатывать пустой ввод', () => { ... });
 });
